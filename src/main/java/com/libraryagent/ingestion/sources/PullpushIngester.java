@@ -47,7 +47,7 @@ public class PullpushIngester implements BookSourceIngester {
                             UUID.randomUUID(),
                             "reddit/" + subreddit,
                             post.title() + " " + post.selftext(),
-                            post.fullLink(),
+                            post.url(),
                             post.createdAt()
                     ))
                     .toList();

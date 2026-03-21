@@ -42,7 +42,7 @@ class RestClientPullpushApiClient implements PullpushApiClient {
                     .map(d -> new PullpushPost(
                             d.title() != null ? d.title() : "",
                             d.selftext() != null ? d.selftext() : "",
-                            d.fullLink(),
+                            d.url(),
                             d.subreddit(),
                             Instant.ofEpochSecond(d.createdUtc())
                     ))
@@ -64,7 +64,7 @@ class RestClientPullpushApiClient implements PullpushApiClient {
     private record PostData(
             @JsonProperty("title") String title,
             @JsonProperty("selftext") String selftext,
-            @JsonProperty("full_link") String fullLink,
+            @JsonProperty("url") String url,
             @JsonProperty("subreddit") String subreddit,
             @JsonProperty("created_utc") long createdUtc
     ) {}

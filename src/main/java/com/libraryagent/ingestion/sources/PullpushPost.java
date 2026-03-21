@@ -5,7 +5,7 @@ import java.time.Instant;
 record PullpushPost(
         String title,
         String selftext,
-        String fullLink,
+        String url,
         String subreddit,
         Instant createdAt
 ) {}
