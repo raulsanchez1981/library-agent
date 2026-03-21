@@ -1,0 +1,32 @@
+# Maven
+target/
+*.jar
+*.war
+*.ear
+!.mvn/wrapper/maven-wrapper.jar
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+
+# Spring Boot
+*.log
+logs/
+
+# Variables de entorno (nunca commitear)
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporales de Kindle delivery
+/tmp/
