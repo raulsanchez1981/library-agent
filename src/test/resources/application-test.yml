@@ -1,7 +1,13 @@
 spring:
   datasource:
-    url: jdbc:tc:postgresql:16:///libraryagent
-    driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
+    # Usa el PostgreSQL de docker-compose (localhost:5432)
+    # Testcontainers JDBC no funciona con Docker Desktop 4.34+ en Windows
+    # (los named pipes devuelven Status 400 vacío desde la JVM)
+    # Alternativa: habilitar TCP en Docker Desktop Settings → "Expose daemon on tcp://localhost:2375"
+    url: jdbc:postgresql://localhost:5432/libraryagent
+    username: libraryagent
+    password: libraryagent
+    driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:

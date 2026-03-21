@@ -1,4 +1,4 @@
-services:
+2services:
 
   postgres:
     image: postgres:16

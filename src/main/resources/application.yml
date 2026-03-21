@@ -27,6 +27,15 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: false
 
+ingestion:
+  pullpush:
+    subreddits:
+      - Fantasy
+      - printSF
+      - suggestmeabook
+      - booksuggestions
+    posts-size: 25
+
 logging:
   level:
     com.libraryagent: INFO

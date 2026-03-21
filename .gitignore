@@ -30,3 +30,7 @@ Thumbs.db
 
 # Temporales de Kindle delivery
 /tmp/
+
+# Claude Code - settings personales y memoria auto
+.claude/settings.local.json
+.claude/projects/
