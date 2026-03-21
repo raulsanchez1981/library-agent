@@ -14,4 +14,6 @@ public interface RawMentionRepository extends JpaRepository<RawMentionEntity, UU
     List<RawMentionEntity> findByFetchedAtAfter(Instant since);
 
     boolean existsBySourceAndUrl(String source, String url);
+
+    boolean existsByUrl(String url);
 }

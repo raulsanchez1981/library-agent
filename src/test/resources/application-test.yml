@@ -21,6 +21,9 @@ spring:
       host: localhost
       port: 6379
 
+anthropic:
+  api-key: test-api-key
+
 logging:
   level:
     com.libraryagent: DEBUG

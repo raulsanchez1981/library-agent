@@ -1,48 +1,75 @@
 package com.libraryagent.ingestion.extractor;
 
-import com.libraryagent.ingestion.model.ExtractedBook;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.model.RawMention;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
 
 /**
- * Extrae títulos y autores de libros a partir de texto no estructurado usando Claude API.
+ * Extrae títulos y autores de libros a partir de texto no estructurado usando Claude API,
+ * y los enriquece consultando OpenLibrary para detectar edición en español.
  */
-@Service
 public class BookTitleExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(BookTitleExtractor.class);
 
-    @Value("${claude.api-key:#{null}}")
-    private String claudeApiKey;
+    private final ClaudeGateway claudeGateway;
+    private final OpenLibraryClient openLibraryClient;
+    private final ObjectMapper objectMapper;
 
-    @Value("${claude.model:claude-opus-4-6}")
-    private String claudeModel;
-
-    /**
-     * Analiza el texto de una mención e intenta extraer un libro.
-     * Retorna empty si no se detecta ningún libro con suficiente confianza.
-     */
-    public Optional<ExtractedBook> extract(RawMention mention) {
-        // TODO: implementar llamada a Claude API
-        // El prompt debe solicitar JSON: { "title": "...", "author": "..." }
-        // Si Claude no detecta un libro claro, responde { "title": null }
-        log.warn("BookTitleExtractor no implementado aún para mención: {}", mention.id());
-        return Optional.empty();
+    public BookTitleExtractor(
+            ClaudeGateway claudeGateway,
+            OpenLibraryClient openLibraryClient,
+            ObjectMapper objectMapper) {
+        this.claudeGateway = claudeGateway;
+        this.openLibraryClient = openLibraryClient;
+        this.objectMapper = objectMapper;
     }
 
     /**
-     * Procesa un lote de menciones. Útil para reducir latencia en ingesta masiva.
+     * Procesa un lote de menciones. Útil para reducir llamadas en ingesta masiva.
      */
-    public List<ExtractedBook> extractBatch(List<RawMention> mentions) {
+    public List<ExtractedBookResult> extractBatch(List<RawMention> mentions) {
         return mentions.stream()
-                .map(this::extract)
-                .flatMap(Optional::stream)
+                .flatMap(mention -> extract(mention).stream())
                 .toList();
+    }
+
+    /**
+     * Analiza el texto de una mención y extrae todos los libros detectados por Claude,
+     * enriquecidos con datos de OpenLibrary.
+     */
+    public List<ExtractedBookResult> extract(RawMention mention) {
+        String rawJson = claudeGateway.extractTitlesJson(mention.text());
+        List<String> titles = parseTitles(rawJson);
+        return titles.stream()
+                .map(this::enrich)
+                .toList();
+    }
+
+    private List<String> parseTitles(String rawJson) {
+        try {
+            String trimmed = rawJson.strip();
+            // Claude a veces envuelve el JSON en ```json ... ```
+            if (trimmed.startsWith("```")) {
+                trimmed = trimmed.replaceAll("```json\\s*", "").replaceAll("```", "").strip();
+            }
+            return objectMapper.readValue(
+                    trimmed,
+                    objectMapper.getTypeFactory().constructCollectionType(List.class, String.class));
+        } catch (Exception e) {
+            log.warn("No se pudo parsear respuesta de Claude: {}", rawJson);
+            return List.of();
+        }
+    }
+
+    private ExtractedBookResult enrich(String title) {
+        Optional<SpanishEdition> edition = openLibraryClient.findSpanishEdition(title);
+        return edition
+                .map(ed -> new ExtractedBookResult(title, ed.author(), ed.titleEs(), ed.available()))
+                .orElse(new ExtractedBookResult(title, null, null, false));
     }
 }

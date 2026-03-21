@@ -1,14 +1,16 @@
 package com.libraryagent.ingestion.service;
 
 import com.libraryagent.ingestion.extractor.BookTitleExtractor;
-import com.libraryagent.ingestion.model.ExtractedBook;
+import com.libraryagent.ingestion.extractor.ExtractedBookResult;
 import com.libraryagent.ingestion.model.RawMention;
 import com.libraryagent.ingestion.sources.BookSourceIngester;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class IngestionService {
@@ -27,16 +29,18 @@ public class IngestionService {
      * Ejecuta el ciclo completo de ingesta para todas las fuentes disponibles.
      * Retorna los libros extraídos y listos para scoring.
      */
-    public List<ExtractedBook> runFullIngestion() {
+    public List<ExtractedBookResult> runFullIngestion() {
+        Set<String> seenUrls = new HashSet<>();
         List<RawMention> mentions = ingesters.stream()
                 .filter(BookSourceIngester::isAvailable)
                 .peek(ingester -> log.info("Ingiriendo desde fuente: {}", ingester.sourceId()))
                 .flatMap(ingester -> ingester.ingest().stream())
+                .filter(mention -> seenUrls.add(mention.url()))
                 .toList();
 
         log.info("Menciones recogidas: {}", mentions.size());
 
-        List<ExtractedBook> books = extractor.extractBatch(mentions);
+        List<ExtractedBookResult> books = extractor.extractBatch(mentions);
 
         log.info("Libros extraídos: {}", books.size());
         return books;
