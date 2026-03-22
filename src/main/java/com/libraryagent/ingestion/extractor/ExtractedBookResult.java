@@ -1,16 +1,11 @@
 package com.libraryagent.ingestion.extractor;
 
 /**
- * Resultado de extraer un libro de una RawMention, enriquecido con datos de OpenLibrary.
+ * Resultado de la extracción rápida con Claude Haiku.
+ * No contiene datos de enriquecimiento — esos los añade BookEnrichmentService.
  *
- * @param title             título original detectado por Claude
- * @param author            autor (null si OpenLibrary no lo encontró)
- * @param titleEs           título en español (null si no difiere o no se encontró)
- * @param availableInSpanish true si OpenLibrary tiene al menos una edición en español
+ * @param title  título detectado en el texto
+ * @param author autor si se menciona explícitamente, null si no
+ * @param isSaga true si es una saga o serie completa
  */
-public record ExtractedBookResult(
-        String title,
-        String author,
-        String titleEs,
-        boolean availableInSpanish
-) {}
+public record ExtractedBookResult(String title, String author, boolean isSaga) {}

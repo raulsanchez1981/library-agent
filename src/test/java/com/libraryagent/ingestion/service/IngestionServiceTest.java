@@ -3,6 +3,9 @@ package com.libraryagent.ingestion.service;
 import com.libraryagent.ingestion.extractor.BookTitleExtractor;
 import com.libraryagent.ingestion.extractor.ExtractedBookResult;
 import com.libraryagent.ingestion.model.RawMention;
+import com.libraryagent.ingestion.model.RawMentionEntity;
+import com.libraryagent.ingestion.repository.ExtractedBookRepository;
+import com.libraryagent.ingestion.repository.RawMentionRepository;
 import com.libraryagent.ingestion.sources.BookSourceIngester;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -14,7 +17,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -22,11 +26,11 @@ class IngestionServiceTest {
 
     @Mock BookSourceIngester ingester;
     @Mock BookTitleExtractor extractor;
+    @Mock RawMentionRepository rawMentionRepository;
+    @Mock ExtractedBookRepository extractedBookRepository;
 
-    // IngestionService toma List<BookSourceIngester> — @InjectMocks no puede inyectarlo,
-    // así que cada test construye la instancia directamente.
     IngestionService service() {
-        return new IngestionService(List.of(ingester), extractor);
+        return new IngestionService(List.of(ingester), extractor, rawMentionRepository, extractedBookRepository);
     }
 
     @Test
@@ -37,13 +41,15 @@ class IngestionServiceTest {
 
         when(ingester.isAvailable()).thenReturn(true);
         when(ingester.ingest()).thenReturn(List.of(mention, duplicate));
-        when(extractor.extractBatch(anyList())).thenReturn(List.of());
+        when(rawMentionRepository.existsByUrl(anyString())).thenReturn(false);
+        when(rawMentionRepository.save(any())).thenReturn(new RawMentionEntity());
+        when(extractor.extract(any())).thenReturn(List.of());
 
         // When
         service().runFullIngestion();
 
-        // Then — el extractor solo recibe una mención, el duplicado es descartado
-        verify(extractor).extractBatch(List.of(mention));
+        // Then — el extractor recibe solo una mención, el duplicado es descartado
+        verify(extractor, times(1)).extract(mention);
     }
 
     @Test
@@ -57,15 +63,36 @@ class IngestionServiceTest {
         when(ingester.ingest()).thenReturn(List.of(mention));
         when(ingester2.isAvailable()).thenReturn(true);
         when(ingester2.ingest()).thenReturn(List.of(duplicate));
-        when(extractor.extractBatch(anyList())).thenReturn(List.of());
+        when(rawMentionRepository.existsByUrl(anyString())).thenReturn(false);
+        when(rawMentionRepository.save(any())).thenReturn(new RawMentionEntity());
+        when(extractor.extract(any())).thenReturn(List.of());
 
-        IngestionService serviceWithTwo = new IngestionService(List.of(ingester, ingester2), extractor);
+        IngestionService serviceWithTwo =
+                new IngestionService(List.of(ingester, ingester2), extractor, rawMentionRepository, extractedBookRepository);
 
         // When
         serviceWithTwo.runFullIngestion();
 
-        // Then
-        verify(extractor).extractBatch(List.of(mention));
+        // Then — solo se procesa la primera mención
+        verify(extractor, times(1)).extract(mention);
+    }
+
+    @Test
+    void shouldSkipMentionsAlreadyPersistedInDatabase() {
+        // Given — mención que ya existe en BBDD
+        RawMention mention = mention("https://reddit.com/r/Fantasy/comments/known");
+
+        when(ingester.isAvailable()).thenReturn(true);
+        when(ingester.ingest()).thenReturn(List.of(mention));
+        when(rawMentionRepository.existsByUrl(mention.url())).thenReturn(true);
+
+        // When
+        List<ExtractedBookResult> result = service().runFullIngestion();
+
+        // Then — nada se guarda ni se extrae
+        assertThat(result).isEmpty();
+        verify(rawMentionRepository, never()).save(any());
+        verify(extractor, never()).extract(any());
     }
 
     @Test
@@ -77,13 +104,17 @@ class IngestionServiceTest {
 
         when(ingester.isAvailable()).thenReturn(true);
         when(ingester.ingest()).thenReturn(List.of(a, b, c));
-        when(extractor.extractBatch(anyList())).thenReturn(List.of());
+        when(rawMentionRepository.existsByUrl(anyString())).thenReturn(false);
+        when(rawMentionRepository.save(any())).thenReturn(new RawMentionEntity());
+        when(extractor.extract(any())).thenReturn(List.of());
 
         // When
         service().runFullIngestion();
 
         // Then — las tres pasan al extractor
-        verify(extractor).extractBatch(List.of(a, b, c));
+        verify(extractor).extract(a);
+        verify(extractor).extract(b);
+        verify(extractor).extract(c);
     }
 
     @Test
@@ -94,9 +125,10 @@ class IngestionServiceTest {
         // When
         List<ExtractedBookResult> result = service().runFullIngestion();
 
-        // Then — extractBatch se llama con lista vacía; el resultado es vacío
+        // Then
         assertThat(result).isEmpty();
-        verify(extractor).extractBatch(List.of());
+        verify(extractor, never()).extract(any());
+        verify(rawMentionRepository, never()).save(any());
     }
 
     @Test
@@ -108,16 +140,19 @@ class IngestionServiceTest {
         when(unavailable.isAvailable()).thenReturn(false);
         when(ingester.isAvailable()).thenReturn(true);
         when(ingester.ingest()).thenReturn(List.of(mention));
-        when(extractor.extractBatch(anyList())).thenReturn(List.of());
+        when(rawMentionRepository.existsByUrl(anyString())).thenReturn(false);
+        when(rawMentionRepository.save(any())).thenReturn(new RawMentionEntity());
+        when(extractor.extract(any())).thenReturn(List.of());
 
-        IngestionService serviceWithTwo = new IngestionService(List.of(unavailable, ingester), extractor);
+        IngestionService serviceWithTwo =
+                new IngestionService(List.of(unavailable, ingester), extractor, rawMentionRepository, extractedBookRepository);
 
         // When
         serviceWithTwo.runFullIngestion();
 
         // Then
         verify(unavailable, never()).ingest();
-        verify(extractor).extractBatch(List.of(mention));
+        verify(extractor).extract(mention);
     }
 
     private static RawMention mention(String url) {

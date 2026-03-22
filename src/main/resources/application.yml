@@ -30,10 +30,10 @@ spring:
 ingestion:
   pullpush:
     subreddits:
-      - Fantasy
-      - printSF
-      - suggestmeabook
-      - booksuggestions
+      Fantasy: "fantasía épica"
+      printSF: "ciencia ficción"
+      suggestmeabook: "literatura general"
+      booksuggestions: "literatura general"
     posts-size: 25
 
 anthropic:

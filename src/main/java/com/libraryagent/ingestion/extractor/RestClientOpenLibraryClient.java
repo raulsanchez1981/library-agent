@@ -8,8 +8,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Component
 public class RestClientOpenLibraryClient implements OpenLibraryClient {
@@ -17,33 +21,36 @@ public class RestClientOpenLibraryClient implements OpenLibraryClient {
     private static final Logger log = LoggerFactory.getLogger(RestClientOpenLibraryClient.class);
     private static final String BASE_URL = "https://openlibrary.org";
 
+    /**
+     * Umbral mínimo de similitud para aceptar un resultado de OL como válido.
+     * El 80% de las palabras significativas del título buscado deben aparecer en el resultado.
+     */
+    private static final double TITLE_SIMILARITY_THRESHOLD = 0.8;
+
+    private static final Set<String> STOPWORDS = Set.of(
+            "the", "a", "an", "and", "of", "in", "at", "to", "for", "on", "by", "with", "is"
+    );
+
     private final RestClient restClient;
 
     public RestClientOpenLibraryClient(RestClient.Builder builder) {
         this.restClient = builder.baseUrl(BASE_URL).build();
     }
 
+    /**
+     * Busca partiendo del título en inglés (sin filtro de idioma para mejor precisión),
+     * valida similitud y devuelve la primera edición en español encontrada.
+     * Usado como fallback cuando Sonnet no conoce la traducción.
+     */
     @Override
     public Optional<SpanishEdition> findSpanishEdition(String englishTitle) {
         try {
-            // Paso 1: buscar el work con ediciones en español para obtener key y autor
-            SearchResponse response = restClient.get()
-                    .uri("/search.json?title={title}&language=spa&limit=1&fields=key,title,author_name",
-                            englishTitle)
-                    .retrieve()
-                    .body(SearchResponse.class);
+            SearchDoc doc = findWorkByTitle(englishTitle, false);
+            if (doc == null) return Optional.empty();
 
-            if (response == null || response.numFound() == 0 || response.docs().isEmpty()) {
-                return Optional.of(new SpanishEdition(null, englishTitle, null, false));
-            }
-
-            SearchDoc doc = response.docs().getFirst();
-            String author = (doc.authorName() != null && !doc.authorName().isEmpty())
-                    ? doc.authorName().getFirst()
-                    : null;
-
-            // Paso 2: buscar el título de la edición en español en las ediciones del work
-            String titleEs = findSpanishTitle(doc.key(), englishTitle);
+            String author = extractAuthor(doc);
+            String titleEs = findSpanishTitle(doc.key());
+            if (titleEs == null) return Optional.empty();
 
             return Optional.of(new SpanishEdition(titleEs, englishTitle, author, true));
 
@@ -54,30 +61,99 @@ public class RestClientOpenLibraryClient implements OpenLibraryClient {
     }
 
     /**
-     * Busca el título de la primera edición en español del work.
-     * Devuelve null si no hay edición en español o si el título coincide con el inglés.
+     * Busca en OL usando el título en español con filtro language=spa.
+     * Devuelve el título en español que OL tiene catalogado (puede diferir del buscado).
+     * Usado para confirmar o contrastar la traducción propuesta por Sonnet.
      */
-    private String findSpanishTitle(String workKey, String englishTitle) {
+    @Override
+    public Optional<SpanishEdition> findBySpanishTitle(String spanishTitle) {
         try {
-            EditionsResponse editions = restClient.get()
-                    .uri(workKey + "/editions.json?limit=100")
-                    .retrieve()
-                    .body(EditionsResponse.class);
+            SearchDoc doc = findWorkByTitle(spanishTitle, true);
+            if (doc == null) return Optional.empty();
 
-            if (editions == null || editions.entries() == null) return null;
+            String author = extractAuthor(doc);
+            String titleEs = findSpanishTitle(doc.key());
+            if (titleEs == null) return Optional.empty();
 
-            return editions.entries().stream()
-                    .filter(e -> e.languages() != null && e.languages().stream()
-                            .anyMatch(l -> "/languages/spa".equals(l.key())))
-                    .map(EditionEntry::title)
-                    .filter(t -> t != null && !t.equalsIgnoreCase(englishTitle))
-                    .findFirst()
-                    .orElse(null);
+            return Optional.of(new SpanishEdition(titleEs, doc.title(), author, true));
 
         } catch (RestClientException e) {
-            log.warn("Error al obtener ediciones del work {}: {}", workKey, e.getMessage());
-            return null;
+            log.warn("Error al verificar título en español '{}' en OpenLibrary: {}", spanishTitle, e.getMessage());
+            return Optional.empty();
         }
+    }
+
+    /**
+     * Busca en OL el work cuyo título sea más similar al buscado.
+     * Si useSpanishFilter=true incluye &language=spa (para búsquedas por título español).
+     */
+    private SearchDoc findWorkByTitle(String title, boolean useSpanishFilter) {
+        String uri = useSpanishFilter
+                ? "/search.json?title={title}&language=spa&limit=5&fields=key,title,author_name"
+                : "/search.json?title={title}&limit=5&fields=key,title,author_name";
+
+        SearchResponse response = restClient.get()
+                .uri(uri, title)
+                .retrieve()
+                .body(SearchResponse.class);
+
+        if (response == null || response.docs() == null || response.docs().isEmpty()) return null;
+
+        return response.docs().stream()
+                .filter(doc -> titleSimilarity(doc.title(), title) >= TITLE_SIMILARITY_THRESHOLD)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Obtiene el título de la primera edición en español del work indicado.
+     */
+    private String findSpanishTitle(String workKey) {
+        EditionsResponse editions = restClient.get()
+                .uri(workKey + "/editions.json?limit=100")
+                .retrieve()
+                .body(EditionsResponse.class);
+
+        if (editions == null || editions.entries() == null) return null;
+
+        return editions.entries().stream()
+                .filter(e -> e.languages() != null && e.languages().stream()
+                        .anyMatch(l -> "/languages/spa".equals(l.key())))
+                .map(EditionEntry::title)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private String extractAuthor(SearchDoc doc) {
+        return (doc.authorName() != null && !doc.authorName().isEmpty())
+                ? doc.authorName().getFirst() : null;
+    }
+
+    /**
+     * Para títulos de una sola palabra significativa exige coincidencia exacta
+     * (evita que "Cradle" encaje con "Cat's Cradle").
+     * Para títulos de múltiples palabras exige que al menos el 80% aparezca en OL.
+     */
+    private double titleSimilarity(String olTitle, String searchTitle) {
+        Set<String> searchTokens = significantTokens(searchTitle);
+        if (searchTokens.isEmpty()) return 0;
+        Set<String> olTokens = significantTokens(olTitle);
+
+        if (searchTokens.size() == 1) {
+            return searchTokens.equals(olTokens) ? 1.0 : 0.0;
+        }
+
+        long common = searchTokens.stream().filter(olTokens::contains).count();
+        return (double) common / searchTokens.size();
+    }
+
+    private Set<String> significantTokens(String title) {
+        if (title == null) return Set.of();
+        String normalized = title.toLowerCase().replaceAll("[^a-z0-9 ]", " ");
+        return Arrays.stream(normalized.split("\\s+"))
+                .filter(t -> !t.isBlank() && !STOPWORDS.contains(t))
+                .collect(Collectors.toSet());
     }
 
     // --- Tipos internos de parseo ---

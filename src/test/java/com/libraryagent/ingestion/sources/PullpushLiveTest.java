@@ -9,6 +9,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,7 +23,7 @@ class PullpushLiveTest {
 
     @Test
     void shouldFetchRealPostsFromFantasy() {
-        PullpushProperties properties = new PullpushProperties(List.of("Fantasy"), 25);
+        PullpushProperties properties = new PullpushProperties(Map.of("Fantasy", "fantasía épica"), 25);
         PullpushApiClient client = new RestClientPullpushApiClient(properties, RestClient.builder());
 
         List<PullpushPost> posts = client.fetchPosts("Fantasy");
@@ -42,14 +43,14 @@ class PullpushLiveTest {
     void shouldFetchRedditPostsAndEnrichWithSpanishEdition() {
         // Given
         PullpushProperties pullpushProps = new PullpushProperties(
-                List.of("Fantasy", "suggestmeabook"), 10);
+                Map.of("Fantasy", "fantasía épica", "suggestmeabook", "literatura general"), 10);
         PullpushApiClient pullpushClient =
                 new RestClientPullpushApiClient(pullpushProps, RestClient.builder());
         OpenLibraryClient olClient =
                 new RestClientOpenLibraryClient(RestClient.builder());
 
         // When — para cada subreddit, enriquecer los posts con OpenLibrary
-        List<String> subreddits = pullpushProps.subreddits();
+        List<String> subreddits = pullpushProps.subreddits().keySet().stream().toList();
         System.out.println("\n============================================================");
         System.out.println("  PIPELINE: Reddit → OpenLibrary (edición en español)");
         System.out.println("============================================================");

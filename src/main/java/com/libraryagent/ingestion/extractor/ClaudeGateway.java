@@ -1,13 +1,20 @@
 package com.libraryagent.ingestion.extractor;
 
 /**
- * Abstracción sobre la llamada a Claude para facilitar el testing sin red.
+ * Abstracción sobre las llamadas a Claude para facilitar el testing sin red.
  */
-interface ClaudeGateway {
+public interface ClaudeGateway {
 
     /**
-     * Envía el texto de una mención y devuelve el JSON bruto que Claude produce.
-     * Se espera un array JSON de títulos, ej: ["Dune", "Foundation"].
+     * Usa Claude Haiku para extraer los libros mencionados en el texto.
+     * Devuelve un array JSON de objetos: [{"title":"...","author":"...","isSaga":false}, ...]
      */
-    String extractTitlesJson(String mentionText);
+    String extractBooksJson(String mentionText);
+
+    /**
+     * Usa Claude Sonnet para enriquecer un batch de libros con título en español y autor corregido.
+     * Entrada:  array JSON [{"title":"...","author":"...","isSaga":false}, ...]
+     * Salida:   array JSON en el mismo orden: [{"titleEs":"...","authorCorrected":"...","isSaga":false}, ...]
+     */
+    String enrichBooksBatchJson(String booksJson);
 }

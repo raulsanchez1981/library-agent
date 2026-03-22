@@ -1,6 +1,7 @@
 package com.libraryagent.ingestion.extractor;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.libraryagent.ingestion.PullpushProperties;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,10 +15,7 @@ class BookTitleExtractorConfig {
     }
 
     @Bean
-    BookTitleExtractor bookTitleExtractor(
-            ClaudeGateway claudeGateway,
-            OpenLibraryClient openLibraryClient,
-            ObjectMapper objectMapper) {
-        return new BookTitleExtractor(claudeGateway, openLibraryClient, objectMapper);
+    BookTitleExtractor bookTitleExtractor(ClaudeGateway claudeGateway, ObjectMapper objectMapper) {
+        return new BookTitleExtractor(claudeGateway, objectMapper);
     }
 }

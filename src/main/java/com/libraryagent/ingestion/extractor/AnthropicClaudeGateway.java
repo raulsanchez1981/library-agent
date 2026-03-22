@@ -10,18 +10,38 @@ import org.slf4j.LoggerFactory;
 
 /**
  * Implementación de ClaudeGateway que llama a la API de Anthropic via OkHttp.
+ * Extracción: Claude Haiku (rápido y económico, una llamada por RawMention).
+ * Enriquecimiento batch: Claude Sonnet (mejor conocimiento de traducciones).
  */
 public class AnthropicClaudeGateway implements ClaudeGateway {
 
     private static final Logger log = LoggerFactory.getLogger(AnthropicClaudeGateway.class);
 
-    private static final String PROMPT_TEMPLATE = """
-            Extrae todos los títulos de libros mencionados en el siguiente \
-            texto. Devuelve SOLO un array JSON con los títulos exactos, \
-            sin explicaciones ni texto adicional. Si no hay títulos de \
-            libros, devuelve [].
+    private static final String EXTRACT_PROMPT = """
+            Extrae todos los libros mencionados en el siguiente texto.
+            Devuelve SOLO un array JSON donde cada objeto tiene:
+            - title: título del libro tal como se menciona
+            - author: autor si se menciona explícitamente en el texto, null si no
+            - isSaga: true si es una saga o serie completa, false si es un libro individual
+
+            Si no hay libros, devuelve [].
 
             Texto: %s""";
+
+    private static final String ENRICH_PROMPT = """
+            Eres un experto en literatura mundial. Para cada libro de esta lista \
+            devuelve en el mismo orden un JSON array donde cada objeto tiene:
+            - titleEs: título oficial en español más conocido (null si el libro \
+            no tiene traducción española publicada conocida)
+            - authorCorrected: nombre correcto del autor si el proporcionado tiene \
+            errores tipográficos o de formato, o null si es correcto o no hay autor
+            - isSaga: true si es una saga o serie completa, false si es un libro individual
+
+            Sé conservador: devuelve null en titleEs si no estás seguro.
+
+            Lista: %s
+
+            Responde SOLO con el JSON array, sin explicaciones.""";
 
     private final AnthropicClient client;
 
@@ -32,11 +52,20 @@ public class AnthropicClaudeGateway implements ClaudeGateway {
     }
 
     @Override
-    public String extractTitlesJson(String mentionText) {
+    public String extractBooksJson(String mentionText) {
+        return call(Model.CLAUDE_HAIKU_4_5_20251001, EXTRACT_PROMPT.formatted(mentionText), 512L);
+    }
+
+    @Override
+    public String enrichBooksBatchJson(String booksJson) {
+        return call(Model.of("claude-sonnet-4-6"), ENRICH_PROMPT.formatted(booksJson), 1024L);
+    }
+
+    private String call(Model model, String prompt, long maxTokens) {
         MessageCreateParams params = MessageCreateParams.builder()
-                .model(Model.CLAUDE_HAIKU_4_5_20251001)
-                .maxTokens(512L)
-                .addUserMessage(PROMPT_TEMPLATE.formatted(mentionText))
+                .model(model)
+                .maxTokens(maxTokens)
+                .addUserMessage(prompt)
                 .build();
 
         return client.messages().create(params)

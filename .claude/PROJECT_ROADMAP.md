@@ -55,13 +55,23 @@ skills, worktrees y n8n mientras se construye algo útil.
 
 ### Fase 2 — EN CURSO
 Objetivo: primera ingesta real de datos desde Reddit.
+Completado:
+- PullpushIngester implementado (proxy de Reddit via Pushshift/Pullpush)
+- BookTitleExtractor con AnthropicClaudeGateway (Claude API)
+- OpenLibraryClient para enriquecer libros con metadata y edición española
+- IngestionService orquestando todas las fuentes disponibles
+- Tests unitarios: PullpushIngesterTest, BookTitleExtractorTest, IngestionServiceTest, OpenLibraryClientTest
+- Pipeline completo Pullpush → Claude API → OpenLibrary probado manualmente
+
+Completado también:
+- Migración V2: columnas title_es y available_in_spanish en extracted_books, UNIQUE constraint en raw_mentions.url
+- IngestionService conectado a repositorios JPA: persiste menciones y libros en PostgreSQL, deduplicando por URL
+- Pipeline mejorado: detección de sagas (isSaga), validación de traducciones españolas con Claude (descarta falsas), migración V3 (is_saga)
+- IngestionLiveTest: pipeline completo verificado en vivo (97 menciones → 113 libros; 30 traducciones falsas rechazadas)
+
 Pendiente:
-- Crear cuenta Reddit y app para obtener credenciales API
-- Implementar RedditIngester (interfaz BookSourceIngester)
-- Implementar BookTitleExtractor (llama a Claude API)
-- IngestionService orquestando en paralelo
-- Tests unitarios del módulo ingestion
-- Verificar que libros llegan a PostgreSQL
+- Tests de integración con Testcontainers para repositorios (sufijo IT)
+- Scheduler (cron diario que llame a IngestionService.runFullIngestion)
 
 ### Fase 3 — PENDIENTE
 Objetivo: motor de recomendaciones + dashboard web básico.

@@ -10,101 +10,118 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BookTitleExtractorTest {
 
-    @Mock
-    ClaudeGateway claudeGateway;
-
-    @Mock
-    OpenLibraryClient openLibraryClient;
+    @Mock ClaudeGateway claudeGateway;
 
     BookTitleExtractor extractor;
 
     @BeforeEach
     void setUp() {
-        extractor = new BookTitleExtractor(claudeGateway, openLibraryClient, new ObjectMapper());
+        extractor = new BookTitleExtractor(claudeGateway, new ObjectMapper());
     }
 
     @Test
-    void shouldReturnEnrichedBooksWhenClaudeExtractsTitles() {
+    void shouldExtractTitleAuthorAndIsSagaFromHaikuResponse() {
         // Given
-        RawMention mention = mention("I just finished Dune and Foundation, both amazing!");
-        when(claudeGateway.extractTitlesJson(anyString())).thenReturn("[\"Dune\",\"Foundation\"]");
-        when(openLibraryClient.findSpanishEdition("Dune"))
-                .thenReturn(Optional.of(new SpanishEdition("Dune", "Dune", "Frank Herbert", true)));
-        when(openLibraryClient.findSpanishEdition("Foundation"))
-                .thenReturn(Optional.of(new SpanishEdition("Fundación", "Foundation", "Isaac Asimov", true)));
+        when(claudeGateway.extractBooksJson(anyString())).thenReturn("""
+                [
+                  {"title":"Dune","author":"Frank Herbert","isSaga":false},
+                  {"title":"Wheel of Time","author":null,"isSaga":true}
+                ]""");
 
         // When
-        List<ExtractedBookResult> result = extractor.extract(mention);
+        List<ExtractedBookResult> result = extractor.extract(mention("I read Dune and Wheel of Time"));
 
         // Then
         assertThat(result).hasSize(2);
-
-        ExtractedBookResult dune = result.get(0);
-        assertThat(dune.title()).isEqualTo("Dune");
-        assertThat(dune.author()).isEqualTo("Frank Herbert");
-        assertThat(dune.availableInSpanish()).isTrue();
-
-        ExtractedBookResult foundation = result.get(1);
-        assertThat(foundation.title()).isEqualTo("Foundation");
-        assertThat(foundation.author()).isEqualTo("Isaac Asimov");
-        assertThat(foundation.titleEs()).isEqualTo("Fundación");
-        assertThat(foundation.availableInSpanish()).isTrue();
+        assertThat(result.get(0).title()).isEqualTo("Dune");
+        assertThat(result.get(0).author()).isEqualTo("Frank Herbert");
+        assertThat(result.get(0).isSaga()).isFalse();
+        assertThat(result.get(1).title()).isEqualTo("Wheel of Time");
+        assertThat(result.get(1).author()).isNull();
+        assertThat(result.get(1).isSaga()).isTrue();
     }
 
     @Test
-    void shouldReturnEmptyListWhenClaudeReturnsEmptyArray() {
+    void shouldNotCallSonnetNorOpenLibrary() {
         // Given
-        RawMention mention = mention("Nothing book-related here.");
-        when(claudeGateway.extractTitlesJson(anyString())).thenReturn("[]");
+        when(claudeGateway.extractBooksJson(anyString())).thenReturn("[{\"title\":\"Dune\",\"author\":null,\"isSaga\":false}]");
 
         // When
-        List<ExtractedBookResult> result = extractor.extract(mention);
+        extractor.extract(mention("Dune is great"));
+
+        // Then — una sola llamada a Haiku, ninguna a Sonnet ni OL
+        verify(claudeGateway).extractBooksJson(anyString());
+        verify(claudeGateway, never()).enrichBooksBatchJson(anyString());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenHaikuReturnsEmptyArray() {
+        // Given
+        when(claudeGateway.extractBooksJson(anyString())).thenReturn("[]");
+
+        // When
+        List<ExtractedBookResult> result = extractor.extract(mention("Nothing book-related."));
 
         // Then
         assertThat(result).isEmpty();
     }
 
     @Test
-    void shouldReturnEmptyListWhenClaudeReturnsInvalidJson() {
+    void shouldReturnEmptyWhenHaikuReturnsInvalidJson() {
         // Given
-        RawMention mention = mention("Some mention text.");
-        when(claudeGateway.extractTitlesJson(anyString())).thenReturn("esto no es json valido {{{{");
+        when(claudeGateway.extractBooksJson(anyString())).thenReturn("esto no es json {{{{");
 
-        // When — no debe lanzar excepción
-        List<ExtractedBookResult> result = extractor.extract(mention);
+        // When
+        List<ExtractedBookResult> result = extractor.extract(mention("Some text."));
 
         // Then
         assertThat(result).isEmpty();
     }
 
     @Test
-    void shouldParseCorrectlyWhenClaudeWrapsJsonInMarkdownFences() {
+    void shouldSkipEntriesWithNullOrBlankTitle() {
         // Given
-        RawMention mention = mention("I recommend Dune.");
-        when(claudeGateway.extractTitlesJson(anyString())).thenReturn("```json\n[\"Dune\"]\n```");
-        when(openLibraryClient.findSpanishEdition("Dune"))
-                .thenReturn(Optional.of(new SpanishEdition(null, "Dune", "Frank Herbert", true)));
+        when(claudeGateway.extractBooksJson(anyString())).thenReturn("""
+                [
+                  {"title":null,"author":null,"isSaga":false},
+                  {"title":"","author":null,"isSaga":false},
+                  {"title":"Foundation","author":"Asimov","isSaga":false}
+                ]""");
 
         // When
-        List<ExtractedBookResult> result = extractor.extract(mention);
+        List<ExtractedBookResult> result = extractor.extract(mention("Foundation and others"));
+
+        // Then — solo Foundation, los dos anteriores descartados
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).title()).isEqualTo("Foundation");
+    }
+
+    @Test
+    void shouldParseMarkdownFencesFromHaiku() {
+        // Given
+        when(claudeGateway.extractBooksJson(anyString()))
+                .thenReturn("```json\n[{\"title\":\"Neuromancer\",\"author\":\"William Gibson\",\"isSaga\":false}]\n```");
+
+        // When
+        List<ExtractedBookResult> result = extractor.extract(mention("Read Neuromancer."));
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).title()).isEqualTo("Dune");
-        assertThat(result.get(0).author()).isEqualTo("Frank Herbert");
+        assertThat(result.get(0).title()).isEqualTo("Neuromancer");
+        assertThat(result.get(0).author()).isEqualTo("William Gibson");
     }
 
     private RawMention mention(String text) {
-        return new RawMention(UUID.randomUUID(), "reddit", text, "https://reddit.com/r/test", Instant.now());
+        return new RawMention(UUID.randomUUID(), "reddit/Fantasy", text,
+                "https://reddit.com/r/Fantasy/test", Instant.now());
     }
 }

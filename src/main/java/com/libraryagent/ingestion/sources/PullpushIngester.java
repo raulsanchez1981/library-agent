@@ -29,7 +29,7 @@ public class PullpushIngester implements BookSourceIngester {
 
     @Override
     public List<RawMention> ingest() {
-        return properties.subreddits().stream()
+        return properties.subreddits().keySet().stream()
                 .flatMap(subreddit -> fetchMentions(subreddit).stream())
                 .toList();
     }

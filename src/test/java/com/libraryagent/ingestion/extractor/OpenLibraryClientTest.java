@@ -27,8 +27,8 @@ class OpenLibraryClientTest {
     }
 
     @Test
-    void shouldReturnSpanishTitleWhenEditionExistsWithDifferentTitle() {
-        // Given — search devuelve el work key; editions devuelve una edición en español
+    void shouldReturnSpanishTitleWhenEditionExists() {
+        // Given — OL encuentra el work y tiene una edición en español
         String searchJson = """
                 {
                   "numFound": 3,
@@ -50,7 +50,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=1&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
                         "The Mists of Avalon"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
         server.expect(requestTo(
@@ -70,7 +70,7 @@ class OpenLibraryClientTest {
     }
 
     @Test
-    void shouldReturnNullTitleEsWhenSpanishEditionHasSameTitleAsEnglish() {
+    void shouldReturnSameTitleWhenSpanishEditionHasSameTitleAsEnglish() {
         // Given — Dune: la edición en español también se llama "Dune"
         String searchJson = """
                 {
@@ -93,7 +93,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=1&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
                         "Dune"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
         server.expect(requestTo(
@@ -103,17 +103,16 @@ class OpenLibraryClientTest {
         // When
         Optional<SpanishEdition> result = client.findSpanishEdition("Dune");
 
-        // Then
+        // Then — disponible aunque el título sea idéntico al inglés
         assertThat(result).isPresent();
-        SpanishEdition edition = result.get();
-        assertThat(edition.available()).isTrue();
-        assertThat(edition.titleEs()).isNull();
-        assertThat(edition.author()).isEqualTo("Frank Herbert");
+        assertThat(result.get().available()).isTrue();
+        assertThat(result.get().titleEs()).isEqualTo("Dune");
+        assertThat(result.get().author()).isEqualTo("Frank Herbert");
     }
 
     @Test
-    void shouldReturnNotAvailableWhenNoSpanishEditionFound() {
-        // Given — numFound 0: no hay works con edición en español
+    void shouldReturnEmptyWhenNoWorkFoundInOL() {
+        // Given — OL no tiene el libro
         String searchJson = """
                 {
                   "numFound": 0,
@@ -121,7 +120,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=1&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
                         "Some Unknown Book"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
 
@@ -129,24 +128,170 @@ class OpenLibraryClientTest {
         Optional<SpanishEdition> result = client.findSpanishEdition("Some Unknown Book");
 
         // Then
-        assertThat(result).isPresent();
-        SpanishEdition edition = result.get();
-        assertThat(edition.available()).isFalse();
-        assertThat(edition.titleEs()).isNull();
-        assertThat(edition.author()).isNull();
-        assertThat(edition.titleOriginal()).isEqualTo("Some Unknown Book");
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldReturnEmptyWhenWorkFoundButNoSpanishEdition() {
+        // Given — OL tiene el work pero ninguna edición en español
+        String searchJson = """
+                {
+                  "numFound": 1,
+                  "docs": [{
+                    "key": "/works/OL99999W",
+                    "title": "Gridlinked",
+                    "author_name": ["Neal Asher"]
+                  }]
+                }
+                """;
+        String editionsJson = """
+                {
+                  "entries": [
+                    {
+                      "title": "Gridlinked",
+                      "languages": [{"key": "/languages/eng"}]
+                    }
+                  ]
+                }
+                """;
+        server.expect(requestToUriTemplate(
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "Gridlinked"))
+                .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
+        server.expect(requestTo(
+                        "https://openlibrary.org/works/OL99999W/editions.json?limit=100"))
+                .andRespond(withSuccess(editionsJson, MediaType.APPLICATION_JSON));
+
+        // When
+        Optional<SpanishEdition> result = client.findSpanishEdition("Gridlinked");
+
+        // Then — libro en OL pero sin edición española
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldRejectOLResultWhenMultiWordTitleSimilarityIsTooLow() {
+        // Given — OL devuelve un libro con título completamente diferente (falso positivo)
+        String searchJson = """
+                {
+                  "numFound": 1,
+                  "docs": [{
+                    "key": "/works/OL11111W",
+                    "title": "Diccionario Del Diablo",
+                    "author_name": ["Ambrose Bierce"]
+                  }]
+                }
+                """;
+        server.expect(requestToUriTemplate(
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "The Devils"))
+                .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
+
+        // When
+        Optional<SpanishEdition> result = client.findSpanishEdition("The Devils");
+
+        // Then — rechazado por baja similitud de título
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void shouldRejectOLResultWhenSingleWordTitleMatchesLongerTitle() {
+        // Given — buscar "Cradle" no debe aceptar "Cat's Cradle" (Vonnegut)
+        String searchJson = """
+                {
+                  "numFound": 1,
+                  "docs": [{
+                    "key": "/works/OL22222W",
+                    "title": "Cat's Cradle",
+                    "author_name": ["Kurt Vonnegut"]
+                  }]
+                }
+                """;
+        server.expect(requestToUriTemplate(
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "Cradle"))
+                .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
+
+        // When
+        Optional<SpanishEdition> result = client.findSpanishEdition("Cradle");
+
+        // Then — "Cradle" ≠ "Cat's Cradle": coincidencia exacta requerida para título de una sola palabra
+        assertThat(result).isEmpty();
     }
 
     @Test
     void shouldReturnEmptyWhenApiReturnsServerError() {
         // Given
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=1&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
                         "Dune"))
                 .andRespond(withServerError());
 
         // When
         Optional<SpanishEdition> result = client.findSpanishEdition("Dune");
+
+        // Then
+        assertThat(result).isEmpty();
+    }
+
+    // ── findBySpanishTitle ────────────────────────────────────────────────────
+
+    @Test
+    void shouldReturnSpanishEditionWhenOLRecognizesSpanishTitle() {
+        // Given
+        String searchJson = """
+                {
+                  "numFound": 1,
+                  "docs": [{
+                    "key": "/works/OL12345W",
+                    "title": "El Señor de los Anillos",
+                    "author_name": ["J.R.R. Tolkien"]
+                  }]
+                }
+                """;
+        String editionsJson = """
+                {
+                  "entries": [
+                    {
+                      "title": "El Señor de los Anillos",
+                      "languages": [{"key": "/languages/spa"}]
+                    }
+                  ]
+                }
+                """;
+        server.expect(requestToUriTemplate(
+                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=5&fields=key,title,author_name",
+                        "El Señor de los Anillos"))
+                .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
+        server.expect(requestTo(
+                        "https://openlibrary.org/works/OL12345W/editions.json?limit=100"))
+                .andRespond(withSuccess(editionsJson, MediaType.APPLICATION_JSON));
+
+        // When
+        Optional<SpanishEdition> result = client.findBySpanishTitle("El Señor de los Anillos");
+
+        // Then
+        assertThat(result).isPresent();
+        assertThat(result.get().titleEs()).isEqualTo("El Señor de los Anillos");
+        assertThat(result.get().author()).isEqualTo("J.R.R. Tolkien");
+    }
+
+    @Test
+    void shouldReturnEmptyWhenOLDoesNotRecognizeSpanishTitle() {
+        // Given — OL no tiene nada para este título español
+        String searchJson = """
+                {
+                  "numFound": 0,
+                  "docs": []
+                }
+                """;
+        server.expect(requestToUriTemplate(
+                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=5&fields=key,title,author_name",
+                        "Los magos"))
+                .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
+
+        // When
+        Optional<SpanishEdition> result = client.findBySpanishTitle("Los magos");
 
         // Then
         assertThat(result).isEmpty();

@@ -1,5 +1,6 @@
 package com.libraryagent.ingestion.model;
 
+import com.libraryagent.ingestion.extractor.EnrichmentSource;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -25,6 +26,35 @@ public class ExtractedBookEntity {
 
     @Column(length = 256)
     private String author;
+
+    @Column(name = "is_saga", nullable = false)
+    private boolean isSaga;
+
+    // --- Campos de enriquecimiento (rellenados por BookEnrichmentService) ---
+
+    @Column(name = "title_es", length = 512)
+    private String titleEs;
+
+    @Column(name = "title_es_ol", length = 500)
+    private String titleEsOl;
+
+    @Column(name = "author_corrected", length = 300)
+    private String authorCorrected;
+
+    @Column(name = "available_in_spanish", nullable = false)
+    private boolean availableInSpanish;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "enrichment_source", length = 20)
+    private EnrichmentSource enrichmentSource;
+
+    @Column(name = "enriched", nullable = false)
+    private boolean enriched;
+
+    @Column(name = "enriched_at")
+    private Instant enrichedAt;
+
+    // --- Metadatos ---
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "source_mention_id", nullable = false)

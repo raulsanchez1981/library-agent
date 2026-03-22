@@ -10,6 +10,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -26,7 +27,7 @@ class PullpushIngesterTest {
     @BeforeEach
     void setUp() {
         PullpushProperties properties = new PullpushProperties(
-                List.of("Fantasy", "printSF"),
+                Map.of("Fantasy", "fantasía épica", "printSF", "ciencia ficción"),
                 25
         );
         ingester = new PullpushIngester(pullpushApiClient, properties);
