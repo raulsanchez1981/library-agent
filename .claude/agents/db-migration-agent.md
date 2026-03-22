@@ -1,6 +1,6 @@
 ---
 name: db-migration-agent
-description: Gestiona todos los cambios de esquema de base de datos mediante migraciones Flyway. Usar cuando se necesita crear o consultar migraciones SQL.
+description: "DEBE invocarse automáticamente SIEMPRE que se necesite crear o modificar cualquier fichero .sql en src/main/resources/db/migration/. Gestiona nomenclatura V{n}__{descripcion}.sql, verifica orden de versiones, actualiza entidades JPA correspondientes. Nunca modifica migraciones ya aplicadas en producción."
 ---
 
 # Agente: DB Migration Specialist

@@ -44,3 +44,18 @@ mvn spring-boot:run   # arrancar la aplicación (puerto 8080)
 - Nunca SQL directo: siempre JPA o QueryDSL
 - Tests unitarios obligatorios para toda lógica de negocio
 - Tests de integración con Testcontainers para repositorios
+
+## Política de uso de agentes
+Delegar SIEMPRE en el agente correspondiente cuando la tarea encaje con su descripción. No ejecutar en el contexto principal si existe un agente para esa tarea.
+
+Orden de prioridad:
+1. db-migration-agent → cualquier fichero .sql nuevo o modificado
+2. ingestion-agent → cualquier clase en paquete ingestion/
+3. recommendation-agent → cualquier clase en paquete recommendation/
+4. test-runner → siempre al finalizar cualquier cambio en .java
+
+## Estado del proyecto
+Lee siempre .claude/PROJECT_ROADMAP.md al inicio de cada sesión
+para conocer las fases completadas y el trabajo pendiente.
+Fase actual: Fase 2 — pipeline completo implementado y probado (Pullpush→Claude→OpenLibrary, IngestionService operativo, tests unitarios completos).
+Siguiente: persistencia en PostgreSQL, tests de integración con Testcontainers y scheduler cron diario.

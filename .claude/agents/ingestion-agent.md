@@ -1,6 +1,6 @@
 ---
 name: ingestion-agent
-description: Especialista en fuentes de ingesta de libros. Usar cuando se añade, modifica o depura una fuente de datos (Reddit, Instagram, RSS u otras).
+description: "DEBE invocarse automáticamente cuando se vaya a crear o modificar cualquier clase en el paquete com.libraryagent.ingestion: BookTitleExtractor, BookEnrichmentService, IngestionService, PullpushIngester, OpenLibraryClient, o cualquier implementación de BookSourceIngester. También cuando se añada una nueva fuente de datos al sistema."
 ---
 
 # Agente: Ingestion Specialist

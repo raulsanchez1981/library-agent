@@ -1,6 +1,6 @@
 ---
 name: test-runner
-description: Ejecuta la suite de tests de un módulo concreto e informa de fallos con contexto y causa raíz. No modifica código.
+description: "DEBE invocarse automáticamente al finalizar cualquier implementación o refactoring que modifique ficheros .java. Ejecuta mvn test -pl . del módulo afectado, identifica la causa raíz de cada fallo con número de línea, y reporta un resumen sin modificar código."
 ---
 
 # Agente: Test Runner

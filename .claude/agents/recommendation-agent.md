@@ -1,6 +1,6 @@
 ---
 name: recommendation-agent
-description: Especialista en el motor de scoring y perfil de usuario. Usar cuando se modifica la lógica de recomendación, el prompt de Claude, el cálculo de score o la gestión del perfil lector.
+description: "DEBE invocarse automáticamente cuando se vaya a crear o modificar cualquier clase en el paquete com.libraryagent.recommendation: RecommendationService, BookScoringStrategy, UserProfileService, o cualquier lógica de scoring o perfil lector."
 ---
 
 # Agente: Recommendation Specialist
