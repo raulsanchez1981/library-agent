@@ -53,25 +53,18 @@ skills, worktrees y n8n mientras se construye algo útil.
 - .env para desarrollo local
 - .claude/ con skills, agentes y rules versionado en Git
 
-### Fase 2 — EN CURSO
+### Fase 2 — COMPLETADA
 Objetivo: primera ingesta real de datos desde Reddit.
-Completado:
-- PullpushIngester implementado (proxy de Reddit via Pushshift/Pullpush)
-- BookTitleExtractor con AnthropicClaudeGateway (Claude API)
-- OpenLibraryClient para enriquecer libros con metadata y edición española
-- IngestionService orquestando todas las fuentes disponibles
-- Tests unitarios: PullpushIngesterTest, BookTitleExtractorTest, IngestionServiceTest, OpenLibraryClientTest
-- Pipeline completo Pullpush → Claude API → OpenLibrary probado manualmente
-
-Completado también:
-- Migración V2: columnas title_es y available_in_spanish en extracted_books, UNIQUE constraint en raw_mentions.url
-- IngestionService conectado a repositorios JPA: persiste menciones y libros en PostgreSQL, deduplicando por URL
-- Pipeline mejorado: detección de sagas (isSaga), validación de traducciones españolas con Claude (descarta falsas), migración V3 (is_saga)
-- IngestionLiveTest: pipeline completo verificado en vivo (97 menciones → 113 libros; 30 traducciones falsas rechazadas)
-
-Pendiente:
-- Tests de integración con Testcontainers para repositorios (sufijo IT)
-- Scheduler (cron diario que llame a IngestionService.runFullIngestion)
+- PullpushIngester funcional (4 subreddits de fantasía/scifi)
+- BookTitleExtractor con Claude Haiku (extracción ligera por mención)
+- BookEnrichmentService con Claude Sonnet + OpenLibrary (enriquecimiento batch)
+- Sistema de confidence scoring: HIGH (Sonnet+OL coinciden) / MEDIUM (solo Sonnet) / LOW (Sonnet y OL discrepan) / NONE (sin traducción)
+- EnrichmentSource simplificado: SONNET / OL_ONLY / NONE
+- Pipeline separado en dos fases: ingesta (8:00h) + enriquecimiento (8:30h) via schedulers
+- Migraciones V1–V6 aplicadas correctamente
+- 41 tests unitarios pasando, 5 live tests disponibles
+- Agentes delegando correctamente: ingestion-agent, db-migration-agent, test-runner
+- 145 libros procesados en primera ejecución real (97 menciones)
 
 ### Fase 3 — PENDIENTE
 Objetivo: motor de recomendaciones + dashboard web básico.

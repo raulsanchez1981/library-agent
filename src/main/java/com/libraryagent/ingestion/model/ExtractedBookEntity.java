@@ -1,5 +1,6 @@
 package com.libraryagent.ingestion.model;
 
+import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.extractor.EnrichmentSource;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -47,6 +48,10 @@ public class ExtractedBookEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "enrichment_source", length = 20)
     private EnrichmentSource enrichmentSource;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "confidence", length = 10)
+    private Confidence confidence;
 
     @Column(name = "enriched", nullable = false)
     private boolean enriched;

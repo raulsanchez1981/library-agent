@@ -3,6 +3,7 @@ package com.libraryagent.ingestion.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.extractor.ClaudeGateway;
+import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.extractor.EnrichmentSource;
 import com.libraryagent.ingestion.extractor.OpenLibraryClient;
 import com.libraryagent.ingestion.extractor.SpanishEdition;
@@ -26,20 +27,23 @@ import java.util.stream.Collectors;
  *
  * Flujo por libro:
  * - Sonnet propone titleEs y authorCorrected en batches de 10
- * - Si Sonnet tiene titleEs: verificar contra OpenLibrary buscando por título español
- *   → CONFIRMED si OL coincide, REVIEW si difiere, SONNET_ONLY si OL no encuentra nada
+ * - Si Sonnet tiene titleEs: llamar a OL por título español para obtener sugerencia
+ *   → SONNET + HIGH si OL confirma con palabras clave similares
+ *   → SONNET + MEDIUM si OL no encuentra nada
+ *   → SONNET + LOW si OL devuelve título con baja similitud de palabras clave
  * - Si Sonnet devuelve null: buscar en OL por título inglés con lang=spa
- *   → OL_ONLY si OL lo encuentra, NONE si no
+ *   → OL_ONLY (confidence=null) si OL lo encuentra, NONE (confidence=null) si no
  */
 @Service
 public class BookEnrichmentService {
 
     private static final Logger log = LoggerFactory.getLogger(BookEnrichmentService.class);
     private static final int BATCH_SIZE = 10;
-    private static final double TITLE_SIMILARITY_THRESHOLD = 0.6;
+    private static final double KEYWORD_SIMILARITY_THRESHOLD = 0.6;
+    private static final int MIN_KEYWORD_LENGTH = 4;
     private static final Set<String> STOPWORDS = Set.of(
-            "el", "la", "los", "las", "de", "del", "en", "un", "una",
-            "the", "a", "an", "and", "of", "in"
+            "the", "and", "for", "with", "from", "that", "this",
+            "los", "las", "del", "una", "con", "por", "que", "sus"
     );
 
     private final ExtractedBookRepository repository;
@@ -122,22 +126,17 @@ public class BookEnrichmentService {
     private void enrichWithSonnetTitle(ExtractedBookEntity entity, String sonnetTitleEs) {
         Optional<SpanishEdition> olResult = openLibraryClient.findBySpanishTitle(sonnetTitleEs);
 
+        entity.setTitleEs(sonnetTitleEs);
+        entity.setEnrichmentSource(EnrichmentSource.SONNET);
+        entity.setAvailableInSpanish(true);
+
         if (olResult.isPresent() && olResult.get().titleEs() != null) {
             String olTitleEs = olResult.get().titleEs();
-            if (titlesSimilar(sonnetTitleEs, olTitleEs)) {
-                entity.setTitleEs(sonnetTitleEs);
-                entity.setEnrichmentSource(EnrichmentSource.CONFIRMED);
-                entity.setAvailableInSpanish(true);
-            } else {
-                entity.setTitleEs(sonnetTitleEs);
-                entity.setTitleEsOl(olTitleEs);
-                entity.setEnrichmentSource(EnrichmentSource.REVIEW);
-                entity.setAvailableInSpanish(true);
-            }
+            entity.setTitleEsOl(olTitleEs);
+            double similarity = keywordSimilarity(sonnetTitleEs, olTitleEs);
+            entity.setConfidence(similarity >= KEYWORD_SIMILARITY_THRESHOLD ? Confidence.HIGH : Confidence.LOW);
         } else {
-            entity.setTitleEs(sonnetTitleEs);
-            entity.setEnrichmentSource(EnrichmentSource.SONNET_ONLY);
-            entity.setAvailableInSpanish(false);
+            entity.setConfidence(Confidence.MEDIUM);
         }
     }
 
@@ -148,34 +147,36 @@ public class BookEnrichmentService {
             SpanishEdition ol = olResult.get();
             entity.setTitleEs(ol.titleEs());
             entity.setEnrichmentSource(EnrichmentSource.OL_ONLY);
+            entity.setConfidence(null);
             entity.setAvailableInSpanish(true);
             if (entity.getAuthor() == null && ol.author() != null) {
                 entity.setAuthorCorrected(ol.author());
             }
         } else {
             entity.setEnrichmentSource(EnrichmentSource.NONE);
+            entity.setConfidence(null);
             entity.setAvailableInSpanish(false);
         }
     }
 
     /**
-     * Compara dos títulos en español ignorando diferencias de capitalización,
-     * artículos y signos de puntuación.
+     * Calcula similitud entre dos cadenas basándose en palabras clave de más de 4 letras.
+     * Excluye artículos y preposiciones comunes.
+     * @return ratio palabras_comunes / max(palabras_a, palabras_b), entre 0.0 y 1.0
      */
-    private boolean titlesSimilar(String a, String b) {
-        Set<String> tokensA = significantTokens(a);
-        Set<String> tokensB = significantTokens(b);
-        if (tokensA.isEmpty() || tokensB.isEmpty()) return false;
-        long common = tokensA.stream().filter(tokensB::contains).count();
-        double similarity = (double) common / Math.max(tokensA.size(), tokensB.size());
-        return similarity >= TITLE_SIMILARITY_THRESHOLD;
+    private double keywordSimilarity(String a, String b) {
+        Set<String> keywordsA = keywords(a);
+        Set<String> keywordsB = keywords(b);
+        if (keywordsA.isEmpty() || keywordsB.isEmpty()) return 0.0;
+        long common = keywordsA.stream().filter(keywordsB::contains).count();
+        return (double) common / Math.max(keywordsA.size(), keywordsB.size());
     }
 
-    private Set<String> significantTokens(String title) {
-        if (title == null) return Set.of();
-        String normalized = title.toLowerCase().replaceAll("[^a-záéíóúüñ0-9 ]", " ");
+    private Set<String> keywords(String text) {
+        if (text == null) return Set.of();
+        String normalized = text.toLowerCase().replaceAll("[^a-záéíóúüñ0-9 ]", " ");
         return Arrays.stream(normalized.split("\\s+"))
-                .filter(t -> !t.isBlank() && !STOPWORDS.contains(t) && t.length() > 1)
+                .filter(t -> !t.isBlank() && t.length() > MIN_KEYWORD_LENGTH && !STOPWORDS.contains(t))
                 .collect(Collectors.toSet());
     }
 

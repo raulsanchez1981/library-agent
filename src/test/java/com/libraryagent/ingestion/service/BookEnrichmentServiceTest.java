@@ -2,6 +2,7 @@ package com.libraryagent.ingestion.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.extractor.ClaudeGateway;
+import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.extractor.EnrichmentSource;
 import com.libraryagent.ingestion.extractor.OpenLibraryClient;
 import com.libraryagent.ingestion.extractor.SpanishEdition;
@@ -10,10 +11,10 @@ import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -36,10 +37,10 @@ class BookEnrichmentServiceTest {
         service = new BookEnrichmentService(repository, claudeGateway, openLibraryClient, new ObjectMapper());
     }
 
-    // ── Caso 1: CONFIRMED ─────────────────────────────────────────────────────
+    // ── Caso 1: SONNET + HIGH ─────────────────────────────────────────────────
 
     @Test
-    void shouldMarkAsConfirmedWhenSonnetAndOLAgreeOnSpanishTitle() {
+    void shouldMarkAsSonnetHighWhenOLTitleMatchesSonnetTitle() {
         // Given
         ExtractedBookEntity entity = pendingBook("The Lord of the Rings", "Tolkien");
         when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
@@ -53,7 +54,8 @@ class BookEnrichmentServiceTest {
 
         // Then
         assertThat(entity.getTitleEs()).isEqualTo("El Señor de los Anillos");
-        assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.CONFIRMED);
+        assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.SONNET);
+        assertThat(entity.getConfidence()).isEqualTo(Confidence.HIGH);
         assertThat(entity.isAvailableInSpanish()).isTrue();
         assertThat(entity.getAuthorCorrected()).isEqualTo("J.R.R. Tolkien");
         assertThat(entity.isEnriched()).isTrue();
@@ -61,34 +63,11 @@ class BookEnrichmentServiceTest {
         verify(repository).saveAll(any());
     }
 
-    // ── Caso 2: REVIEW ────────────────────────────────────────────────────────
+    // ── Caso 2: SONNET + MEDIUM ───────────────────────────────────────────────
 
     @Test
-    void shouldMarkAsReviewWhenSonnetAndOLHaveDifferentTitles() {
-        // Given — Sonnet dice "Los magos", OL devuelve "Los Diablos"
-        ExtractedBookEntity entity = pendingBook("The Devils", "Joe Abercrombie");
-        when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
-        when(claudeGateway.enrichBooksBatchJson(anyString()))
-                .thenReturn("[{\"titleEs\":\"Los magos\",\"authorCorrected\":null,\"isSaga\":false}]");
-        when(openLibraryClient.findBySpanishTitle("Los magos"))
-                .thenReturn(Optional.of(new SpanishEdition("Los Diablos", "The Devils", "Joe Abercrombie", true)));
-
-        // When
-        service.enrichPending();
-
-        // Then — titleEs tiene el valor de Sonnet, titleEsOl guarda el de OL
-        assertThat(entity.getTitleEs()).isEqualTo("Los magos");
-        assertThat(entity.getTitleEsOl()).isEqualTo("Los Diablos");
-        assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.REVIEW);
-        assertThat(entity.isAvailableInSpanish()).isTrue();
-        assertThat(entity.isEnriched()).isTrue();
-    }
-
-    // ── Caso 3: SONNET_ONLY ───────────────────────────────────────────────────
-
-    @Test
-    void shouldMarkAsSonnetOnlyWhenOLFindsNothing() {
-        // Given — Sonnet conoce la traducción pero OL no tiene el libro
+    void shouldMarkAsSonnetMediumWhenOLFindsNothing() {
+        // Given — Sonnet conoce la traducción pero OL no encuentra nada
         ExtractedBookEntity entity = pendingBook("Stormlight Archive Series", null);
         when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
         when(claudeGateway.enrichBooksBatchJson(anyString()))
@@ -102,9 +81,35 @@ class BookEnrichmentServiceTest {
         // Then
         assertThat(entity.getTitleEs()).isEqualTo("El Archivo de las Tormentas");
         assertThat(entity.getTitleEsOl()).isNull();
-        assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.SONNET_ONLY);
-        assertThat(entity.isAvailableInSpanish()).isFalse();
+        assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.SONNET);
+        assertThat(entity.getConfidence()).isEqualTo(Confidence.MEDIUM);
+        assertThat(entity.isAvailableInSpanish()).isTrue();
         assertThat(entity.getAuthorCorrected()).isEqualTo("Brandon Sanderson");
+        assertThat(entity.isEnriched()).isTrue();
+    }
+
+    // ── Caso 3: SONNET + LOW ──────────────────────────────────────────────────
+
+    @Test
+    void shouldMarkAsSonnetLowWhenOLTitleDifferent() {
+        // Given — Sonnet devuelve "Los magos", OL devuelve "El Archimago de Westeros"
+        // Las palabras clave únicas son: "magos" vs "archimago", "westeros" → sin solapamiento
+        ExtractedBookEntity entity = pendingBook("The Magicians", "Lev Grossman");
+        when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
+        when(claudeGateway.enrichBooksBatchJson(anyString()))
+                .thenReturn("[{\"titleEs\":\"Los magos\",\"authorCorrected\":null,\"isSaga\":false}]");
+        when(openLibraryClient.findBySpanishTitle("Los magos"))
+                .thenReturn(Optional.of(new SpanishEdition("El Archimago de Westeros", "The Magicians", "Lev Grossman", true)));
+
+        // When
+        service.enrichPending();
+
+        // Then — baja similitud → LOW
+        assertThat(entity.getTitleEs()).isEqualTo("Los magos");
+        assertThat(entity.getTitleEsOl()).isEqualTo("El Archimago de Westeros");
+        assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.SONNET);
+        assertThat(entity.getConfidence()).isEqualTo(Confidence.LOW);
+        assertThat(entity.isAvailableInSpanish()).isTrue();
         assertThat(entity.isEnriched()).isTrue();
     }
 
@@ -126,6 +131,7 @@ class BookEnrichmentServiceTest {
         // Then
         assertThat(entity.getTitleEs()).isEqualTo("Gridlinked en español");
         assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.OL_ONLY);
+        assertThat(entity.getConfidence()).isNull();
         assertThat(entity.isAvailableInSpanish()).isTrue();
         assertThat(entity.isEnriched()).isTrue();
         verify(openLibraryClient, never()).findBySpanishTitle(anyString());
@@ -149,6 +155,7 @@ class BookEnrichmentServiceTest {
         // Then
         assertThat(entity.getTitleEs()).isNull();
         assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.NONE);
+        assertThat(entity.getConfidence()).isNull();
         assertThat(entity.isAvailableInSpanish()).isFalse();
         assertThat(entity.isEnriched()).isTrue();
     }
@@ -203,6 +210,8 @@ class BookEnrichmentServiceTest {
 
         // Then — autor de OL guardado como corrección
         assertThat(entity.getAuthorCorrected()).isEqualTo("OL Author");
+        assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.OL_ONLY);
+        assertThat(entity.getConfidence()).isNull();
     }
 
     // --- Helpers ---
@@ -224,6 +233,6 @@ class BookEnrichmentServiceTest {
 
     private String buildSonnetResponse(int count) {
         String entry = "{\"titleEs\":null,\"authorCorrected\":null,\"isSaga\":false}";
-        return "[" + String.join(",", java.util.Collections.nCopies(count, entry)) + "]";
+        return "[" + String.join(",", Collections.nCopies(count, entry)) + "]";
     }
 }
