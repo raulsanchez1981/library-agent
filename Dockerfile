@@ -16,9 +16,6 @@ WORKDIR /app
 RUN addgroup --system --gid 1001 appgroup && \
     adduser --system --uid 1001 --gid 1001 --ingroup appgroup appuser
 
-# INTENCIONAL: línea que rompe hadolint para demo de CI bloqueado
-RUN apt-get install curl
-
 COPY --from=build /app/target/*.jar app.jar
 
 USER appuser
