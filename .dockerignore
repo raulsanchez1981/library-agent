@@ -1,0 +1,14 @@
+target/
+.git/
+.idea/
+.vscode/
+*.iml
+*.log
+logs/
+.env
+.env.local
+.env.prod
+.env.*.local
+docker/
+.claude/
+README.md
