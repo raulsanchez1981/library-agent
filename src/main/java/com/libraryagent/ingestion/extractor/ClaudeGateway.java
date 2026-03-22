@@ -17,4 +17,12 @@ public interface ClaudeGateway {
      * Salida:   array JSON en el mismo orden: [{"titleEs":"...","authorCorrected":"...","isSaga":false}, ...]
      */
     String enrichBooksBatchJson(String booksJson);
+
+    /**
+     * Usa Claude Sonnet para buscar el autor de libros donde author es desconocido.
+     * Entrada:  array JSON [{"title":"...","isSaga":false}, ...]
+     * Salida:   array JSON en el mismo orden: [{"author":"..."}, ...]
+     *           author puede ser null si Sonnet no conoce el libro.
+     */
+    String lookupAuthorsBatchJson(String booksJson);
 }

@@ -28,6 +28,16 @@ public class AnthropicClaudeGateway implements ClaudeGateway {
 
             Texto: %s""";
 
+    private static final String LOOKUP_AUTHORS_PROMPT = """
+            Eres un experto en literatura mundial. Para cada libro de esta lista, \
+            proporciona el nombre del autor principal si lo conoces.
+            Devuelve en el mismo orden un JSON array donde cada objeto tiene:
+            - author: nombre completo del autor (null si no conoces el libro o no tienes certeza)
+
+            Lista: %s
+
+            Responde SOLO con el JSON array, sin explicaciones.""";
+
     private static final String ENRICH_PROMPT = """
             Eres un experto en literatura mundial. Para cada libro de esta lista \
             devuelve en el mismo orden un JSON array donde cada objeto tiene:
@@ -59,6 +69,11 @@ public class AnthropicClaudeGateway implements ClaudeGateway {
     @Override
     public String enrichBooksBatchJson(String booksJson) {
         return call(Model.of("claude-sonnet-4-6"), ENRICH_PROMPT.formatted(booksJson), 1024L);
+    }
+
+    @Override
+    public String lookupAuthorsBatchJson(String booksJson) {
+        return call(Model.of("claude-sonnet-4-6"), LOOKUP_AUTHORS_PROMPT.formatted(booksJson), 512L);
     }
 
     private String call(Model model, String prompt, long maxTokens) {

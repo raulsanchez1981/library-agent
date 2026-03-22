@@ -106,6 +106,10 @@ public class BookEnrichmentService {
     private void applyEnrichment(ExtractedBookEntity entity, SonnetEnrichment enrichment) {
         if (enrichment.authorCorrected() != null) {
             entity.setAuthorCorrected(enrichment.authorCorrected());
+            // Si author está vacío, el valor corregido de Sonnet es la mejor fuente disponible
+            if (entity.getAuthor() == null || entity.getAuthor().isBlank()) {
+                entity.setAuthor(enrichment.authorCorrected());
+            }
         }
         if (enrichment.isSaga() != entity.isSaga()) {
             entity.setSaga(enrichment.isSaga());
@@ -149,14 +153,57 @@ public class BookEnrichmentService {
             entity.setEnrichmentSource(EnrichmentSource.OL_ONLY);
             entity.setConfidence(null);
             entity.setAvailableInSpanish(true);
-            if (entity.getAuthor() == null && ol.author() != null) {
+            if (ol.author() != null && (entity.getAuthor() == null || entity.getAuthor().isBlank())) {
                 entity.setAuthorCorrected(ol.author());
+                entity.setAuthor(ol.author());
             }
         } else {
             entity.setEnrichmentSource(EnrichmentSource.NONE);
             entity.setConfidence(null);
             entity.setAvailableInSpanish(false);
         }
+    }
+
+    /**
+     * Re-enriquece libros que ya fueron procesados pero quedaron sin autor.
+     * Usa lookupAuthorsBatchJson para preguntar a Sonnet solo por el autor,
+     * enviando únicamente title e isSaga (sin author) para evitar que Sonnet
+     * interprete author=null como "no hay autor" y descarte la búsqueda.
+     *
+     * @return número de autores recuperados
+     */
+    public int reEnrichAuthors() {
+        List<ExtractedBookEntity> candidates = repository.findByEnrichedTrueAndAuthorIsNull();
+        if (candidates.isEmpty()) {
+            log.info("No hay libros enriquecidos sin autor");
+            return 0;
+        }
+        int recovered = 0;
+
+        for (int i = 0; i < candidates.size(); i += BATCH_SIZE) {
+            List<ExtractedBookEntity> batch = candidates.subList(i, Math.min(i + BATCH_SIZE, candidates.size()));
+            String booksJson = serializeBatchForLookup(batch);
+            List<String> authors = callLookupAuthorsAndParse(booksJson);
+
+            List<ExtractedBookEntity> toSave = new ArrayList<>();
+            for (int j = 0; j < batch.size(); j++) {
+                ExtractedBookEntity entity = batch.get(j);
+                String author = j < authors.size() ? authors.get(j) : null;
+                if (author != null) {
+                    entity.setAuthor(author);
+                    entity.setAuthorCorrected(author);
+                    toSave.add(entity);
+                    recovered++;
+                }
+            }
+
+            if (!toSave.isEmpty()) {
+                repository.saveAll(toSave);
+            }
+        }
+
+        log.info("Autores recuperados: {}/{}", recovered, candidates.size());
+        return recovered;
     }
 
     /**
@@ -220,9 +267,41 @@ public class BookEnrichmentService {
         return trimmed;
     }
 
+    private String serializeBatchForLookup(List<ExtractedBookEntity> batch) {
+        try {
+            List<BookLookupInput> inputs = batch.stream()
+                    .map(e -> new BookLookupInput(e.getTitle(), e.isSaga()))
+                    .toList();
+            return objectMapper.writeValueAsString(inputs);
+        } catch (Exception e) {
+            return "[]";
+        }
+    }
+
+    private List<String> callLookupAuthorsAndParse(String booksJson) {
+        try {
+            String rawJson = claudeGateway.lookupAuthorsBatchJson(booksJson);
+            String clean = stripMarkdownFences(rawJson);
+            JsonNode array = objectMapper.readTree(clean);
+            if (!array.isArray()) return List.of();
+
+            List<String> results = new ArrayList<>();
+            for (JsonNode node : array) {
+                String author = node.path("author").isNull() ? null : node.path("author").asText(null);
+                results.add(author);
+            }
+            return results;
+        } catch (Exception e) {
+            log.warn("Error al parsear respuesta de lookup de autores: {}", e.getMessage());
+            return List.of();
+        }
+    }
+
     // --- Tipos internos ---
 
     private record BookInput(String title, String author, boolean isSaga) {}
+
+    private record BookLookupInput(String title, boolean isSaga) {}
 
     private record SonnetEnrichment(String titleEs, String authorCorrected, boolean isSaga) {}
 }

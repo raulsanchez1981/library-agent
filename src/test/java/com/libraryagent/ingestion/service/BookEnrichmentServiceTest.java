@@ -208,10 +208,57 @@ class BookEnrichmentServiceTest {
         // When
         service.enrichPending();
 
-        // Then — autor de OL guardado como corrección
+        // Then — autor de OL guardado tanto en authorCorrected como en author
         assertThat(entity.getAuthorCorrected()).isEqualTo("OL Author");
+        assertThat(entity.getAuthor()).isEqualTo("OL Author");
         assertThat(entity.getEnrichmentSource()).isEqualTo(EnrichmentSource.OL_ONLY);
         assertThat(entity.getConfidence()).isNull();
+    }
+
+    // ── Bug fix: authorCorrected de Sonnet se copia a author cuando author es null ──
+
+    @Test
+    void shouldCopyAuthorCorrectedToAuthorWhenAuthorIsNull() {
+        // Given — libro sin autor; Sonnet devuelve authorCorrected
+        ExtractedBookEntity entity = pendingBook("The Name of the Wind", null);
+        when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
+        when(claudeGateway.enrichBooksBatchJson(anyString()))
+                .thenReturn("[{\"titleEs\":\"El nombre del viento\",\"authorCorrected\":\"Patrick Rothfuss\",\"isSaga\":false}]");
+        when(openLibraryClient.findBySpanishTitle("El nombre del viento"))
+                .thenReturn(Optional.empty());
+
+        // When
+        service.enrichPending();
+
+        // Then — author queda relleno con el valor corregido de Sonnet
+        assertThat(entity.getAuthorCorrected()).isEqualTo("Patrick Rothfuss");
+        assertThat(entity.getAuthor()).isEqualTo("Patrick Rothfuss");
+        assertThat(entity.isEnriched()).isTrue();
+    }
+
+    // ── reEnrichAuthors ───────────────────────────────────────────────────────
+
+    @Test
+    void shouldReturnCountOfRecoveredAuthors() {
+        // Given — dos libros enriquecidos sin autor; Sonnet recupera uno de ellos
+        ExtractedBookEntity book1 = pendingBook("Book Without Author 1", null);
+        book1.setEnriched(true);
+        ExtractedBookEntity book2 = pendingBook("Book Without Author 2", null);
+        book2.setEnriched(true);
+
+        when(repository.findByEnrichedTrueAndAuthorIsNull()).thenReturn(List.of(book1, book2));
+        when(claudeGateway.lookupAuthorsBatchJson(anyString()))
+                .thenReturn("[{\"author\":\"Brandon Sanderson\"},{\"author\":null}]");
+
+        // When
+        int result = service.reEnrichAuthors();
+
+        // Then — solo book1 recuperó autor
+        assertThat(result).isEqualTo(1);
+        assertThat(book1.getAuthor()).isEqualTo("Brandon Sanderson");
+        assertThat(book1.getAuthorCorrected()).isEqualTo("Brandon Sanderson");
+        assertThat(book2.getAuthor()).isNull();
+        verify(repository).saveAll(any());
     }
 
     // --- Helpers ---

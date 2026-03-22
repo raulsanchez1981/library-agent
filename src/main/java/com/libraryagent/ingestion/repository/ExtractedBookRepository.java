@@ -15,4 +15,6 @@ public interface ExtractedBookRepository extends JpaRepository<ExtractedBookEnti
     boolean existsByTitleIgnoreCase(String title);
 
     long countByEnrichedFalse();
+
+    List<ExtractedBookEntity> findByEnrichedTrueAndAuthorIsNull();
 }

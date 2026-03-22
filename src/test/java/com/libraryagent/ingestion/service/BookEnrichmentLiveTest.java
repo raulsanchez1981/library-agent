@@ -26,6 +26,18 @@ class BookEnrichmentLiveTest {
     private ExtractedBookRepository extractedBookRepository;
 
     @Test
+    void shouldReEnrichAuthorsForBooksWithNullAuthor() {
+        long nullBefore = extractedBookRepository.findByEnrichedTrueAndAuthorIsNull().size();
+        System.out.printf("%nAutores null antes: %d%n", nullBefore);
+
+        int recuperados = bookEnrichmentService.reEnrichAuthors();
+
+        long nullAfter = extractedBookRepository.findByEnrichedTrueAndAuthorIsNull().size();
+        System.out.printf("Autores recuperados: %d%n", recuperados);
+        System.out.printf("Autores null después: %d%n", nullAfter);
+    }
+
+    @Test
     void shouldEnrichPendingBooksWithRealServices() {
         bookEnrichmentService.enrichPending();
 
