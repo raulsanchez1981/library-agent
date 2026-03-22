@@ -56,15 +56,16 @@ skills, worktrees y n8n mientras se construye algo útil.
 ### Fase 2 — COMPLETADA
 Objetivo: primera ingesta real de datos desde Reddit.
 - PullpushIngester funcional (4 subreddits de fantasía/scifi)
-- BookTitleExtractor con Claude Haiku (extracción ligera por mención)
-- BookEnrichmentService con Claude Sonnet + OpenLibrary (enriquecimiento batch)
-- Sistema de confidence scoring: HIGH (Sonnet+OL coinciden) / MEDIUM (solo Sonnet) / LOW (Sonnet y OL discrepan) / NONE (sin traducción)
-- EnrichmentSource simplificado: SONNET / OL_ONLY / NONE
-- Pipeline separado en dos fases: ingesta (8:00h) + enriquecimiento (8:30h) via schedulers
-- Migraciones V1–V6 aplicadas correctamente
-- 41 tests unitarios pasando, 5 live tests disponibles
-- Agentes delegando correctamente: ingestion-agent, db-migration-agent, test-runner
-- 145 libros procesados en primera ejecución real (97 menciones)
+- Pipeline separado: ingesta ligera (Claude Haiku, 8:00h) + enriquecimiento nocturno (Sonnet + OL, 8:30h)
+- Claude Haiku para extracción de títulos por mención
+- Claude Sonnet para traducción al español y corrección/búsqueda de autores (batch de 10)
+- Sistema de confidence: HIGH (Sonnet+OL coinciden) / MEDIUM (solo Sonnet) / LOW (discrepan)
+- EnrichmentSource: SONNET / OL_ONLY / NONE
+- OpenLibrary como fallback y validador de traducciones
+- reEnrichAuthors(): recupera autores perdidos sin repetir enriquecimiento completo
+- Migraciones V1–V6 aplicadas; 44 tests unitarios pasando; 6 live tests disponibles
+- 145 libros procesados, 137 con autor, en primera ejecución real (97 menciones)
+- Agentes funcionando con política de delegación: ingestion-agent, db-migration-agent, test-runner
 
 ### Fase 3 — PENDIENTE
 Objetivo: motor de recomendaciones + dashboard web básico.
