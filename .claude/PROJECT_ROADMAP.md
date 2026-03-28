@@ -122,18 +122,23 @@ Infraestructura: Mini PC propio con Proxmox en red doméstica (IP dinámica, sin
 #### 3.5 — Pipeline CD a producción
 - [x] Build imagen Docker de producción en el runner (roshar)
 - [x] Deploy: runner para contenedores existentes y hace docker compose up --build
-- [x] Health check post-deploy (TCP con reintentos, vuelca logs si falla)
+- [x] Health check post-deploy via docker inspect (healthy/starting), vuelca logs si falla
+- [x] Spring Boot Actuator operativo en producción: /actuator/health con detalle de DB, Redis y Flyway
 - [ ] Notificación a Telegram: despliegue completado o fallido (Fase 5)
 
-#### 3.6 — Acceso público con Cloudflare Tunnel
-- [ ] cloudflared instalado en roshar
-- [ ] Túnel activo: app.dominio.com → Nginx → Spring Boot
-- [ ] Certificado TLS gestionado por Cloudflare (sin Let's Encrypt manual)
+#### 3.6 — Acceso público con Cloudflare Tunnel ✓
+- [x] cloudflared instalado en roshar (contenedor Docker)
+- [x] Túnel activo: subdominio.mistborn.cv → Cloudflare Tunnel → NPM (Nginx Proxy Manager) → app
+- [x] Certificado TLS gestionado por Cloudflare (sin Let's Encrypt manual)
+- [x] atium.mistborn.cv operativo: /library-agent/actuator/health respondiendo UP
+- [x] Arquitectura: una entrada en Cloudflare tunnel por subdominio → todas a NPM → NPM enruta por puerto
 
 #### 3.7 — Backup y monitorización básica
-- [ ] Backup automático de PostgreSQL via n8n (workflow nocturno)
-- [ ] Alerta a Telegram si algún servicio cae (Uptime Kuma ya instalado)
-- [ ] Métricas en Grafana (ya instalado)
+- [x] Backup automático diario gestionado por Proxmox (roshar + scadrial), 3 copias rotativas
+- [x] Uptime Kuma configurado: NPM, Portainer, PostgreSQL, MySQL
+- [x] Añadir monitor en Kuma: atium.mistborn.cv/library-agent/actuator/health
+- [x] Grafana con 3 dashboards: Node Exporter Full, PostgreSQL Database, MySQL Dashboard
+- [ ] Spring Boot dashboard en Grafana (Micrometer + Prometheus) — Fase 4
 
 #### 3.7 — Agentes y skills DevOps
 - [ ] devops-agent: gestiona Dockerfile, docker-compose, variables de entorno y configuración de infraestructura
