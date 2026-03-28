@@ -29,17 +29,15 @@ jobs:
       - name: Health check
         run: |
           echo "Esperando a que Spring Boot arranque..."
-          APP_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' libraryagent-app)
-          echo "IP del contenedor: $APP_IP"
-          for i in $(seq 1 12); do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${APP_IP}:8080/actuator/health 2>/dev/null) || true
-            if [ "$STATUS" = "200" ]; then
-              echo "Aplicación respondiendo en /actuator/health (HTTP 200)"
+          for i in $(seq 1 18); do
+            HEALTH=$(docker inspect --format='{{.State.Health.Status}}' libraryagent-app 2>/dev/null) || true
+            echo "Intento $i/18 — estado: $HEALTH"
+            if [ "$HEALTH" = "healthy" ]; then
+              echo "Contenedor healthy"
               exit 0
             fi
-            echo "Intento $i/12 — HTTP $STATUS — esperando 10s..."
             sleep 10
           done
-          echo "Health check fallido tras 2 minutos"
+          echo "Health check fallido tras 3 minutos"
           docker logs libraryagent-app --tail 30
           exit 1
