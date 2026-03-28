@@ -15,11 +15,15 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v4
 
+      - name: Parar contenedores existentes
+        run: |
+          docker compose -p libraryagent -f docker-compose.prod.yml down --remove-orphans || true
+
       - name: Build y arrancar contenedores
         run: |
-          docker compose -f docker-compose.prod.yml \
+          docker compose -p libraryagent -f docker-compose.prod.yml \
             --env-file /opt/libraryagent/.env.prod \
-            up -d --build --remove-orphans
+            up -d --build
 
       - name: Health check
         run: |
