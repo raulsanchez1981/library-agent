@@ -140,12 +140,12 @@ Infraestructura: Mini PC propio con Proxmox en red doméstica (IP dinámica, sin
 - [x] Grafana con 3 dashboards: Node Exporter Full, PostgreSQL Database, MySQL Dashboard
 - [ ] Spring Boot dashboard en Grafana (Micrometer + Prometheus) — Fase 4
 
-#### 3.7 — Agentes y skills DevOps
-- [ ] devops-agent: gestiona Dockerfile, docker-compose, variables de entorno y configuración de infraestructura
-- [ ] ci-agent: especialista en GitHub Actions workflows, GHCR y pipelines de CI/CD
-- [ ] security-agent: verifica que no hay credenciales en código, gestiona GitHub Secrets, revisa dependencias
-- [ ] docker-skill: convenciones de Dockerfile multi-stage, docker-compose para este proyecto, health checks
-- [ ] github-actions-skill: estructura de workflows, secrets de GitHub, patrones de deploy SSH, GHCR
+#### 3.8 — Agentes y skills DevOps
+- [x] devops-agent: gestiona Dockerfile, docker-compose, variables de entorno y configuración de infraestructura
+- [x] ci-agent: especialista en GitHub Actions workflows, GHCR y pipelines de CI/CD
+- [x] security-agent: verifica que no hay credenciales en código, gestiona GitHub Secrets, revisa dependencias
+- [x] docker-skill: convenciones de Dockerfile multi-stage, docker-compose para este proyecto, health checks
+- [x] github-actions-skill: estructura de workflows, secrets de GitHub, patrones de deploy SSH, GHCR
 
 ---
 
