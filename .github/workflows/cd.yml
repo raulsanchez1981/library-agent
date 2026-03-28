@@ -29,8 +29,10 @@ jobs:
       - name: Health check
         run: |
           echo "Esperando a que Spring Boot arranque..."
+          APP_IP=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' libraryagent-app)
+          echo "IP del contenedor: $APP_IP"
           for i in $(seq 1 12); do
-            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health 2>/dev/null) || true
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://${APP_IP}:8080/actuator/health 2>/dev/null) || true
             if [ "$STATUS" = "200" ]; then
               echo "Aplicación respondiendo en /actuator/health (HTTP 200)"
               exit 0
