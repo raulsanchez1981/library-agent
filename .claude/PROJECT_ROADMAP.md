@@ -117,14 +117,13 @@ Infraestructura: Mini PC propio con Proxmox en red doméstica (IP dinámica, sin
 - [x] docker-compose.prod.yml con Spring Boot + Redis desplegado en roshar
 - [x] PostgreSQL en scadrial accesible desde roshar por red local
 - [x] Todo el stack corriendo: Spring Boot + Redis (roshar) + PostgreSQL (scadrial)
+- [x] Acceso SSH desde máquina de desarrollo a roshar y scadrial funcionando sin problema
 
 #### 3.5 — Pipeline CD a producción
-- [ ] Solo cuando Raul aprueba manualmente (manual approval)
-- [ ] Build imagen Docker de producción en el runner (roshar)
-- [ ] Push a GitHub Container Registry (GHCR) con tag semver
-- [ ] Deploy: runner local hace docker pull + docker compose up en roshar
-- [ ] Health check post-deploy
-- [ ] Notificación a Telegram: despliegue completado o fallido
+- [x] Build imagen Docker de producción en el runner (roshar)
+- [x] Deploy: runner para contenedores existentes y hace docker compose up --build
+- [x] Health check post-deploy (TCP con reintentos, vuelca logs si falla)
+- [ ] Notificación a Telegram: despliegue completado o fallido (Fase 5)
 
 #### 3.6 — Acceso público con Cloudflare Tunnel
 - [ ] cloudflared instalado en roshar
