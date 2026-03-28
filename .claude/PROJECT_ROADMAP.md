@@ -113,10 +113,10 @@ Infraestructura: Mini PC propio con Proxmox en red doméstica (IP dinámica, sin
 - scadrial (VM BBDD): PostgreSQL / MariaDB
 - Dominio propio configurado en Cloudflare (sin túnel activo aún)
 
-- [ ] Self-hosted GitHub Actions runner instalado y registrado en roshar
-- [ ] docker-compose.prod.yml con Spring Boot + Redis desplegado en roshar
-- [ ] PostgreSQL en scadrial accesible desde roshar por red local
-- [ ] Todo el stack corriendo: Spring Boot + Redis (roshar) + PostgreSQL (scadrial)
+- [x] Self-hosted GitHub Actions runner instalado y registrado en roshar
+- [x] docker-compose.prod.yml con Spring Boot + Redis desplegado en roshar
+- [x] PostgreSQL en scadrial accesible desde roshar por red local
+- [x] Todo el stack corriendo: Spring Boot + Redis (roshar) + PostgreSQL (scadrial)
 
 #### 3.5 — Pipeline CD a producción
 - [ ] Solo cuando Raul aprueba manualmente (manual approval)
