@@ -1,9 +1,9 @@
 name: CD
 
-# Se ejecuta en cada push a main (es decir, al mergear una PR)
+# Se ejecuta cuando Raul publica una Release en GitHub
 on:
-  push:
-    branches: [main]
+  release:
+    types: [published]
 
 jobs:
 
