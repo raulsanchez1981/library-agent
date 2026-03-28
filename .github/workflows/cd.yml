@@ -30,11 +30,12 @@ jobs:
         run: |
           echo "Esperando a que Spring Boot arranque..."
           for i in $(seq 1 12); do
-            if docker exec libraryagent-app bash -c 'cat < /dev/null > /dev/tcp/localhost/8080' 2>/dev/null; then
-              echo "Aplicación respondiendo en puerto 8080"
+            STATUS=$(docker exec libraryagent-app curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/actuator/health 2>/dev/null)
+            if [ "$STATUS" = "200" ]; then
+              echo "Aplicación respondiendo en /actuator/health (HTTP 200)"
               exit 0
             fi
-            echo "Intento $i/12 — esperando 10s..."
+            echo "Intento $i/12 — HTTP $STATUS — esperando 10s..."
             sleep 10
           done
           echo "Health check fallido tras 2 minutos"
