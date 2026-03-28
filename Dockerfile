@@ -14,7 +14,7 @@ FROM eclipse-temurin:21-jre-jammy AS runtime
 WORKDIR /app
 
 RUN addgroup --system --gid 1001 appgroup && \
-    adduser --system --uid 1001 --gid 1001 --ingroup appgroup appuser
+    adduser --system --uid 1001 --ingroup appgroup appuser
 
 COPY --from=build /app/target/*.jar app.jar
 
