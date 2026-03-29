@@ -118,7 +118,7 @@ En la UI de NPM, crear un nuevo **Proxy Host**:
 - **Websockets Support**: **habilitado** (obligatorio para Authentik)
 - **Block Common Exploits**: habilitado
 
-En la pestaña **SSL**: solicitar certificado Let's Encrypt o usar el de Cloudflare.
+> TLS termina en Cloudflare. El tráfico entre Cloudflare Tunnel y NPM es HTTP interno — dejar **No SSL** en la pestaña SSL de NPM.
 
 > Sin el header `Host` correcto Authentik genera redirect loops. NPM lo propaga automáticamente.
 
