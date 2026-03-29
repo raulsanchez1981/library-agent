@@ -113,77 +113,162 @@ Infraestructura: Mini PC propio con Proxmox en red doméstica (IP dinámica, sin
 - scadrial (VM BBDD): PostgreSQL / MariaDB
 - Dominio propio configurado en Cloudflare (sin túnel activo aún)
 
-- [ ] Self-hosted GitHub Actions runner instalado y registrado en roshar
-- [ ] docker-compose.prod.yml con Spring Boot + Redis desplegado en roshar
-- [ ] PostgreSQL en scadrial accesible desde roshar por red local
-- [ ] Todo el stack corriendo: Spring Boot + Redis (roshar) + PostgreSQL (scadrial)
+- [x] Self-hosted GitHub Actions runner instalado y registrado en roshar
+- [x] docker-compose.prod.yml con Spring Boot + Redis desplegado en roshar
+- [x] PostgreSQL en scadrial accesible desde roshar por red local
+- [x] Todo el stack corriendo: Spring Boot + Redis (roshar) + PostgreSQL (scadrial)
+- [x] Acceso SSH desde máquina de desarrollo a roshar y scadrial funcionando sin problema
 
 #### 3.5 — Pipeline CD a producción
-- [ ] Solo cuando Raul aprueba manualmente (manual approval)
-- [ ] Build imagen Docker de producción en el runner (roshar)
-- [ ] Push a GitHub Container Registry (GHCR) con tag semver
-- [ ] Deploy: runner local hace docker pull + docker compose up en roshar
-- [ ] Health check post-deploy
-- [ ] Notificación a Telegram: despliegue completado o fallido
+- [x] Build imagen Docker de producción en el runner (roshar)
+- [x] Deploy: runner para contenedores existentes y hace docker compose up --build
+- [x] Health check post-deploy via docker inspect (healthy/starting), vuelca logs si falla
+- [x] Spring Boot Actuator operativo en producción: /actuator/health con detalle de DB, Redis y Flyway
+- [ ] Notificación a Telegram: despliegue completado o fallido (Fase 5)
 
-#### 3.6 — Acceso público con Cloudflare Tunnel
-- [ ] cloudflared instalado en roshar
-- [ ] Túnel activo: app.dominio.com → Nginx → Spring Boot
-- [ ] Certificado TLS gestionado por Cloudflare (sin Let's Encrypt manual)
+#### 3.6 — Acceso público con Cloudflare Tunnel ✓
+- [x] cloudflared instalado en roshar (contenedor Docker)
+- [x] Túnel activo: subdominio.mistborn.cv → Cloudflare Tunnel → NPM (Nginx Proxy Manager) → app
+- [x] Certificado TLS gestionado por Cloudflare (sin Let's Encrypt manual)
+- [x] atium.mistborn.cv operativo: /library-agent/actuator/health respondiendo UP
+- [x] Arquitectura: una entrada en Cloudflare tunnel por subdominio → todas a NPM → NPM enruta por puerto
 
 #### 3.7 — Backup y monitorización básica
-- [ ] Backup automático de PostgreSQL via n8n (workflow nocturno)
-- [ ] Alerta a Telegram si algún servicio cae (Uptime Kuma ya instalado)
-- [ ] Métricas en Grafana (ya instalado)
+- [x] Backup automático diario gestionado por Proxmox (roshar + scadrial), 3 copias rotativas
+- [x] Uptime Kuma configurado: NPM, Portainer, PostgreSQL, MySQL
+- [x] Añadir monitor en Kuma: atium.mistborn.cv/library-agent/actuator/health
+- [x] Grafana con 3 dashboards: Node Exporter Full, PostgreSQL Database, MySQL Dashboard
+- [ ] Spring Boot dashboard en Grafana (Micrometer + Prometheus) — Fase 4
 
-#### 3.7 — Agentes y skills DevOps
-- [ ] devops-agent: gestiona Dockerfile, docker-compose, variables de entorno y configuración de infraestructura
-- [ ] ci-agent: especialista en GitHub Actions workflows, GHCR y pipelines de CI/CD
-- [ ] security-agent: verifica que no hay credenciales en código, gestiona GitHub Secrets, revisa dependencias
-- [ ] docker-skill: convenciones de Dockerfile multi-stage, docker-compose para este proyecto, health checks
-- [ ] github-actions-skill: estructura de workflows, secrets de GitHub, patrones de deploy SSH, GHCR
+#### 3.8 — Agentes y skills DevOps
+- [x] devops-agent: gestiona Dockerfile, docker-compose, variables de entorno y configuración de infraestructura
+- [x] ci-agent: especialista en GitHub Actions workflows, GHCR y pipelines de CI/CD
+- [x] security-agent: verifica que no hay credenciales en código, gestiona GitHub Secrets, revisa dependencias
+- [x] docker-skill: convenciones de Dockerfile multi-stage, docker-compose para este proyecto, health checks
+- [x] github-actions-skill: estructura de workflows, secrets de GitHub, patrones de deploy SSH, GHCR
 
 ---
 
 ### Fase 4 — PENDIENTE
-Objetivo: motor de recomendaciones + dashboard web.
-Desarrollado desde el principio con GitFlow: ramas feature/*, PRs con revisión.
+Objetivo: autenticación centralizada, motor de recomendaciones y dashboard web.
+Todo desarrollado con GitFlow: ramas feature/*, PRs con revisión, CI obligatorio.
 
-- [ ] Motor de scoring de recomendaciones
-- [ ] Perfil lector del usuario
-- [ ] Dashboard web (React o Next.js)
-- [ ] API REST para el dashboard
+#### 4.1 — Authentik: Identity Provider centralizado
+Motivación: aprender OAuth2/OIDC de verdad con un IdP estándar reutilizable en todas las apps del homelab.
+
+- [ ] Authentik desplegado en roshar via Docker Compose (servicio independiente)
+- [ ] Tunnel Cloudflare para Authentik: auth.mistborn.cv
+- [ ] Tenant configurado: application "LibraryAgent", provider OAuth2/OIDC
+- [ ] Usuario admin creado, grupo `library-admin` definido
+- [ ] Client ID y Client Secret generados, guardados en GitHub Secrets
+- [ ] Monitor en Uptime Kuma: auth.mistborn.cv/healthz
+
+#### 4.2 — Spring Security + OIDC
+Motivación: aprender el flujo JWT con claims de roles; base para todos los endpoints protegidos.
+
+- [ ] Dependencia `spring-boot-starter-oauth2-resource-server` añadida
+- [ ] `SecurityConfig`: STATELESS, validación JWT contra JWKS de Authentik, rutas públicas `/actuator/**`
+- [ ] `JwtAuthenticationConverter`: extrae claim `groups` de Authentik → `GrantedAuthority`
+- [ ] Roles definidos: `ROLE_ADMIN` (acceso total), `ROLE_VIEWER` (solo lectura)
+- [ ] `@PreAuthorize` aplicado en todos los controladores existentes y futuros
+- [ ] CORS configurado para el dominio del dashboard (localhost:5173 en dev, dashboard.mistborn.cv en prod)
+- [ ] Tests unitarios: `SecurityConfigTest` — verifica rutas públicas y protegidas
+- [ ] Tests de integración: `AuthIT` con Testcontainers + token JWT mockeado
+
+#### 4.3 — Perfil lector
+Motivación: base de datos sobre los gustos del usuario que alimenta el motor de scoring.
+
+- [ ] Migración Flyway: tabla `user_profile` (géneros favoritos, autores favoritos, idioma preferido, umbral de score mínimo)
+- [ ] Migración Flyway: tabla `reading_history` (libro, estado: LEÍDO/EN_CURSO/ABANDONADO/PENDIENTE, fecha, rating 1-5, notas)
+- [ ] Entidades JPA + repositorios para ambas tablas
+- [ ] `UserProfileService` (interfaz + impl): CRUD de perfil y historial
+- [ ] `GET /api/v1/profile` → perfil completo, `PUT /api/v1/profile` → actualizar preferencias
+- [ ] `GET /api/v1/reading-history`, `POST /api/v1/reading-history`, `PATCH /api/v1/reading-history/{id}`
+- [ ] Tests unitarios del servicio + tests de integración del repositorio (Testcontainers)
+
+#### 4.4 — Motor de recomendaciones
+Motivación: núcleo del producto — puntúa libros contra el perfil lector usando Claude.
+
+- [ ] Migración Flyway: tabla `recommendations` (libro, score 0-100, reasoning, estado: NUEVA/VISTA/DESCARTADA, fecha)
+- [ ] `BookScoringStrategy` (interfaz sealed): `ClaudeScoringStrategy` y `RuleBasedScoringStrategy` (fallback sin API)
+- [ ] `RecommendationService`: cruza libros HIGH/MEDIUM confidence con perfil lector, descarta ya leídos/descartados
+- [ ] Prompt Claude Sonnet: recibe perfil + libro, devuelve score + justificación en español
+- [ ] Batch configurable: máximo N libros por ejecución (evitar costes excesivos)
+- [ ] Caché Redis: scores calculados con TTL de 24h (no recalcular el mismo libro dos veces)
+- [ ] `GET /api/v1/recommendations` → lista paginada ordenada por score descendente
+- [ ] `PATCH /api/v1/recommendations/{id}/dismiss` → marcar como descartada
+- [ ] Tests unitarios: `BookScoringStrategyTest`, `RecommendationServiceTest`
+- [ ] Test de integración: `RecommendationControllerIT`
+
+#### 4.5 — Dashboard web
+Motivación: interfaz visual para explorar recomendaciones y gestionar el perfil lector.
+
+- [ ] Stack: Next.js 14+ (App Router), TypeScript, Tailwind CSS
+- [ ] Autenticación: NextAuth.js con provider OIDC apuntando a Authentik (auth.mistborn.cv)
+- [ ] Página principal: lista de recomendaciones con score, portada, título, autor y justificación Claude
+- [ ] Página perfil: editar géneros favoritos, autores, umbral de score
+- [ ] Página historial: libros leídos/en curso/pendientes con rating y notas
+- [ ] Acción "Descartar" en cada recomendación (llama `PATCH /api/v1/recommendations/{id}/dismiss`)
+- [ ] Despliegue en roshar: contenedor Docker en docker-compose.prod.yml, subdominio dashboard.mistborn.cv
+- [ ] CI ampliado: job de build Next.js + linting TypeScript
 
 ---
 
 ### Fase 5 — PENDIENTE
-Objetivo: automatización completa con n8n + Telegram + Kindle.
+Objetivo: automatización completa con n8n, notificaciones Telegram y entrega a Kindle.
 
-- [ ] Workflows n8n: ingesta diaria, resumen semanal
-- [ ] Bot Telegram conversacional
-- [ ] Flujo descarga epub → email @kindle.com
-- [ ] Webhooks Spring Boot ↔ n8n
-- [ ] Notificaciones Telegram de nuevas recomendaciones
+#### 5.1 — Workflows n8n
+- [ ] n8n desplegado y accesible: n8n.mistborn.cv (ya instalado, falta tunelar y proteger)
+- [ ] Workflow "Ingesta diaria": trigger cron 08:00 → webhook Spring Boot `POST /api/v1/ingest/trigger`
+- [ ] Workflow "Scoring nocturno": trigger cron 08:30 → webhook Spring Boot `POST /api/v1/recommendations/trigger`
+- [ ] Workflow "Resumen semanal": trigger cron lunes 09:00 → genera resumen top-5 recomendaciones → Telegram
+- [ ] Webhooks de Spring Boot protegidos con API key interna (no JWT — llamadas máquina a máquina)
+
+#### 5.2 — Bot Telegram
+- [ ] Bot registrado en BotFather, token en GitHub Secrets
+- [ ] `TelegramNotificationService`: envía mensajes formateados con portada + score + justificación
+- [ ] Notificación automática cuando hay recomendaciones nuevas con score > umbral del perfil
+- [ ] Comandos básicos: `/top5` (mejores recomendaciones del día), `/perfil` (ver preferencias actuales)
+- [ ] Integración con n8n: Telegram como canal de salida de los workflows
+
+#### 5.3 — Entrega a Kindle
+- [ ] Skill `kindle-delivery` implementada: descarga epub desde fuente → adjunto email → envío a @kindle.com
+- [ ] Workflow n8n "Enviar a Kindle": recibe título desde Telegram → busca epub → envía
+- [ ] Gmail configurado como sender (App Password en Secrets)
+- [ ] Comando Telegram `/enviar {título}` → desencadena el flujo completo
+- [ ] Notificación de confirmación: "📚 _Título_ enviado a tu Kindle"
 
 ---
 
 ### Fase 6 — PENDIENTE
-Objetivo: expansión de fuentes y Kindle sync.
+Objetivo: ampliar fuentes de ingesta y sincronizar biblioteca Kindle.
 
-- [ ] InstagramIngester via Apify (3-4 perfiles fijos)
-- [ ] RssIngester para blogs de reseñas
-- [ ] GoodreadsIngester para historial lector
-- [ ] Kindle sync (API no oficial, lectura biblioteca)
-- [ ] Detección libros abandonados → pregunta por Telegram
+#### 6.1 — Nuevas fuentes de ingesta
+- [ ] `InstagramIngester` via Apify: 3-4 perfiles fijos de bookstagramers, transcripción de Reels
+- [ ] `RssIngester`: parser de feeds RSS/Atom para blogs de reseñas (lista configurable de URLs)
+- [ ] `GoodreadsIngester`: importación del historial lector del usuario desde export CSV de Goodreads
+- [ ] Panel en dashboard para activar/desactivar fuentes y ver estadísticas por fuente
+
+#### 6.2 — Kindle sync
+- [ ] Análisis de la API no oficial de Kindle Cloud Reader (autenticación, endpoints de biblioteca)
+- [ ] `KindleSyncService`: obtiene lista de libros de la biblioteca Kindle del usuario
+- [ ] Sincronización con `reading_history`: libros Kindle → estado EN_CURSO o LEÍDO automáticamente
+- [ ] Detección de libros abandonados (comprados pero sin progreso en >30 días) → pregunta por Telegram
+- [ ] Sincronización programada: workflow n8n diario
 
 ---
 
 ### Fase 7 — PENDIENTE
-Objetivo: app móvil.
+Objetivo: app móvil nativa que consume la API REST existente.
 
-- [ ] React Native
-- [ ] Consume la API REST existente
-- [ ] Notificaciones push de nuevas recomendaciones
+#### 7.1 — App React Native
+- [ ] Stack: React Native (Expo), TypeScript
+- [ ] Autenticación: OAuth2 PKCE contra Authentik (mismo IdP que el dashboard)
+- [ ] Pantalla principal: recomendaciones del día con score y justificación
+- [ ] Pantalla detalle libro: portada, metadata completa, botones "Leer después" / "Descartar" / "Enviar a Kindle"
+- [ ] Pantalla historial: libros leídos con rating y notas
+- [ ] Notificaciones push: integración con el bot Telegram o FCM para nuevas recomendaciones
+- [ ] Build y distribución: Expo EAS Build, instalación directa en dispositivo personal (sin App Store)
 
 ---
 
@@ -194,6 +279,6 @@ Objetivo: app móvil.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 3 — Infraestructura y CI/CD
+- Fase actual: Fase 4 — Autenticación, recomendaciones y dashboard
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop
