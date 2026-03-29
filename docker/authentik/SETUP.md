@@ -208,7 +208,7 @@ En la UI de Uptime Kuma, crear nuevo monitor:
 
 - **Monitor Type**: HTTP(s)
 - **Friendly Name**: `Authentik`
-- **URL**: `https://auth.mistborn.cv/healthz`
+- **URL**: `https://auth.mistborn.cv/-/health/live/`
 - **Heartbeat Interval**: 60 segundos
 
 ---
