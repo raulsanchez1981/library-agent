@@ -24,6 +24,7 @@ logs/
 .env.local
 .env.prod
 .env.*.local
+.env.authentik
 
 # OS
 .DS_Store
