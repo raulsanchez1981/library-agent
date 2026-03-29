@@ -149,19 +149,19 @@ Infraestructura: Mini PC propio con Proxmox en red doméstica (IP dinámica, sin
 
 ---
 
-### Fase 4 — PENDIENTE
+### Fase 4 — EN CURSO
 Objetivo: autenticación centralizada, motor de recomendaciones y dashboard web.
 Todo desarrollado con GitFlow: ramas feature/*, PRs con revisión, CI obligatorio.
 
-#### 4.1 — Authentik: Identity Provider centralizado
+#### 4.1 — Authentik: Identity Provider centralizado ✓
 Motivación: aprender OAuth2/OIDC de verdad con un IdP estándar reutilizable en todas las apps del homelab.
 
-- [ ] Authentik desplegado en roshar via Docker Compose (servicio independiente)
-- [ ] Tunnel Cloudflare para Authentik: auth.mistborn.cv
-- [ ] Tenant configurado: application "LibraryAgent", provider OAuth2/OIDC
-- [ ] Usuario admin creado, grupo `library-admin` definido
-- [ ] Client ID y Client Secret generados, guardados en GitHub Secrets
-- [ ] Monitor en Uptime Kuma: auth.mistborn.cv/healthz
+- [x] Authentik desplegado en roshar via Docker Compose (servicio independiente)
+- [x] Tunnel Cloudflare para Authentik: auth.mistborn.cv
+- [x] Tenant configurado: application "LibraryAgent", provider OAuth2/OIDC
+- [x] Usuario admin creado, grupo `library-admin` definido
+- [x] Client ID y Client Secret generados, guardados en GitHub Secrets
+- [x] Monitor en Uptime Kuma: auth.mistborn.cv/-/health/live/
 
 #### 4.2 — Spring Security + OIDC
 Motivación: aprender el flujo JWT con claims de roles; base para todos los endpoints protegidos.
@@ -279,6 +279,6 @@ Objetivo: app móvil nativa que consume la API REST existente.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 4 — Autenticación, recomendaciones y dashboard
+- Fase actual: Fase 4 — En curso. 4.1 completada. Siguiente: 4.2 Spring Security + OIDC
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop
