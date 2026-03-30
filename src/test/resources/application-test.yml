@@ -21,6 +21,15 @@ spring:
       host: localhost
       port: 6379
 
+  # jwk-set-uri override para evitar que Spring intente contactar al issuer de Authentik.
+  # Spring Security carga las claves de forma lazy: solo cuando llega un JWT real.
+  # Los tests de seguridad usan MockMvc + jwt() post-processor que no pasa por el JwtDecoder.
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: http://localhost:9999/.well-known/jwks.json
+
 anthropic:
   api-key: test-api-key
 
