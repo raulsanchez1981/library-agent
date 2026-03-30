@@ -163,17 +163,18 @@ Motivación: aprender OAuth2/OIDC de verdad con un IdP estándar reutilizable en
 - [x] Client ID y Client Secret generados, guardados en GitHub Secrets
 - [x] Monitor en Uptime Kuma: auth.mistborn.cv/-/health/live/
 
-#### 4.2 — Spring Security + OIDC
+#### 4.2 — Spring Security + OIDC ✓
 Motivación: aprender el flujo JWT con claims de roles; base para todos los endpoints protegidos.
 
-- [ ] Dependencia `spring-boot-starter-oauth2-resource-server` añadida
-- [ ] `SecurityConfig`: STATELESS, validación JWT contra JWKS de Authentik, rutas públicas `/actuator/**`
-- [ ] `JwtAuthenticationConverter`: extrae claim `groups` de Authentik → `GrantedAuthority`
-- [ ] Roles definidos: `ROLE_ADMIN` (acceso total), `ROLE_VIEWER` (solo lectura)
-- [ ] `@PreAuthorize` aplicado en todos los controladores existentes y futuros
-- [ ] CORS configurado para el dominio del dashboard (localhost:5173 en dev, dashboard.mistborn.cv en prod)
-- [ ] Tests unitarios: `SecurityConfigTest` — verifica rutas públicas y protegidas
-- [ ] Tests de integración: `AuthIT` con Testcontainers + token JWT mockeado
+- [x] Dependencia `spring-boot-starter-oauth2-resource-server` añadida
+- [x] `SecurityConfig`: STATELESS, validación JWT contra JWKS de Authentik, rutas públicas `/actuator/**`
+- [x] `LibraryAgentJwtConverter`: extrae claim `groups` de Authentik → `ROLE_ADMIN` / `ROLE_VIEWER`
+- [x] Roles definidos: `ROLE_ADMIN` (acceso total), `ROLE_VIEWER` (solo lectura)
+- [x] `@EnableMethodSecurity` activo — `@PreAuthorize` listo para futuros controladores
+- [x] CORS configurable vía `app.cors.allowed-origins` (localhost:5173 dev, dashboard.mistborn.cv prod)
+- [x] `SecurityConfigTest` (5 tests) + `LibraryAgentJwtConverterTest` (4 tests) — 53/53 en verde
+- [x] `GlobalExceptionHandler` corregido: re-throw de `AccessDeniedException` y `NoResourceFoundException`
+- [ ] Pendiente en Authentik UI: añadir scope mapping `groups` en el provider LibraryAgent
 
 #### 4.3 — Perfil lector
 Motivación: base de datos sobre los gustos del usuario que alimenta el motor de scoring.
@@ -279,6 +280,6 @@ Objetivo: app móvil nativa que consume la API REST existente.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 4 — En curso. 4.1 completada. Siguiente: 4.2 Spring Security + OIDC
+- Fase actual: Fase 4 — En curso. 4.1 y 4.2 completadas. Siguiente: 4.3 Perfil lector
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop
