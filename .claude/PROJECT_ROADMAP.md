@@ -174,18 +174,19 @@ Motivación: aprender el flujo JWT con claims de roles; base para todos los endp
 - [x] CORS configurable vía `app.cors.allowed-origins` (localhost:5173 dev, dashboard.mistborn.cv prod)
 - [x] `SecurityConfigTest` (5 tests) + `LibraryAgentJwtConverterTest` (4 tests) — 53/53 en verde
 - [x] `GlobalExceptionHandler` corregido: re-throw de `AccessDeniedException` y `NoResourceFoundException`
-- [ ] Pendiente en Authentik UI: añadir scope mapping `groups` en el provider LibraryAgent
+- [x] Authentik UI: scope mapping `groups` configurado en el provider LibraryAgent ⚠️ verificación end-to-end pendiente hasta Fase 4.5 (dashboard) o Fase 7 (app móvil)
 
-#### 4.3 — Perfil lector
+#### 4.3 — Perfil lector ✓
 Motivación: base de datos sobre los gustos del usuario que alimenta el motor de scoring.
 
-- [ ] Migración Flyway: tabla `user_profile` (géneros favoritos, autores favoritos, idioma preferido, umbral de score mínimo)
-- [ ] Migración Flyway: tabla `reading_history` (libro, estado: LEÍDO/EN_CURSO/ABANDONADO/PENDIENTE, fecha, rating 1-5, notas)
-- [ ] Entidades JPA + repositorios para ambas tablas
-- [ ] `UserProfileService` (interfaz + impl): CRUD de perfil y historial
-- [ ] `GET /api/v1/profile` → perfil completo, `PUT /api/v1/profile` → actualizar preferencias
-- [ ] `GET /api/v1/reading-history`, `POST /api/v1/reading-history`, `PATCH /api/v1/reading-history/{id}`
-- [ ] Tests unitarios del servicio + tests de integración del repositorio (Testcontainers)
+- [x] Migración Flyway V7: campos en `user_profile` (géneros, autores, idioma, umbral)
+- [x] Migración Flyway V8: tabla `reading_history` (estado, fechas, rating, notas)
+- [x] Entidades JPA + repositorios: `UserProfile` ampliado, `ReadingHistoryEntity`, `ReadingHistoryRepository`
+- [x] `UserProfileService` (interfaz + `UserProfileServiceImpl`): getOrCreate por email, updatePreferences
+- [x] `ReadingHistoryService` (interfaz + `ReadingHistoryServiceImpl`): findAll, add, update
+- [x] `GET /api/v1/profile`, `PUT /api/v1/profile` — usuario resuelto desde JWT claim `email`
+- [x] `GET /api/v1/reading-history`, `POST /api/v1/reading-history`, `PATCH /api/v1/reading-history/{id}`
+- [x] 12 tests unitarios (UserProfileServiceTest x6, ReadingHistoryServiceTest x6) — 65/65 en verde
 
 #### 4.4 — Motor de recomendaciones
 Motivación: núcleo del producto — puntúa libros contra el perfil lector usando Claude.
@@ -280,6 +281,6 @@ Objetivo: app móvil nativa que consume la API REST existente.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 4 — En curso. 4.1 y 4.2 completadas. Siguiente: 4.3 Perfil lector
+- Fase actual: Fase 4 — En curso. 4.1, 4.2 y 4.3 completadas. Siguiente: 4.4 Motor de recomendaciones
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop

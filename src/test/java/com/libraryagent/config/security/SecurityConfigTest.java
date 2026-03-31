@@ -7,6 +7,8 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.libraryagent.userprofile.service.ReadingHistoryService;
+import com.libraryagent.userprofile.service.UserProfileService;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,6 +31,12 @@ class SecurityConfigTest {
     // Evita que Spring intente contactar con Authentik al construir el JwtDecoder
     @MockitoBean
     JwtDecoder jwtDecoder;
+
+    @MockitoBean
+    UserProfileService userProfileService;
+
+    @MockitoBean
+    ReadingHistoryService readingHistoryService;
 
     // Registra el TestController en el contexto — @WebMvcTest no escanea clases internas
     @TestConfiguration
