@@ -11,8 +11,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [Authentik],
   callbacks: {
     jwt({ token, account }) {
-      // Guardamos el access token de Authentik para enviarlo a la API de Spring Boot
-      if (account?.access_token) {
+      // Preferimos id_token (siempre JWT) sobre access_token (puede ser opaco en Authentik)
+      if (account?.id_token) {
+        token.accessToken = account.id_token;
+      } else if (account?.access_token) {
         token.accessToken = account.access_token;
       }
       return token;

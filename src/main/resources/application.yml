@@ -49,7 +49,7 @@ ingestion:
     posts-size: 25
 
 anthropic:
-  api-key: ${ANTHROPIC_API_KEY}
+  api-key: ${ANTHROPIC_API_KEY:}
 
 recommendation:
   claude-model: ${RECOMMENDATION_CLAUDE_MODEL:claude-sonnet-4-6}

@@ -9,7 +9,10 @@ async function fetchRecommendations(page: number): Promise<SpringPage<Recommenda
     `/api/v1/recommendations?page=${page}&size=20&sort=score,desc`,
     { cache: "no-store" }
   );
-  if (!res.ok) throw new Error("Error al cargar las recomendaciones");
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} — ${body || res.statusText}`);
+  }
   return res.json();
 }
 
