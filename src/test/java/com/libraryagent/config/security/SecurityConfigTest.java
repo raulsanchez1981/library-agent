@@ -7,6 +7,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.libraryagent.recommendation.service.RecommendationService;
 import com.libraryagent.userprofile.service.ReadingHistoryService;
 import com.libraryagent.userprofile.service.UserProfileService;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
@@ -31,6 +32,9 @@ class SecurityConfigTest {
     // Evita que Spring intente contactar con Authentik al construir el JwtDecoder
     @MockitoBean
     JwtDecoder jwtDecoder;
+
+    @MockitoBean
+    RecommendationService recommendationService;
 
     @MockitoBean
     UserProfileService userProfileService;

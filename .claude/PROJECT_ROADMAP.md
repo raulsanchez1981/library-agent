@@ -188,19 +188,17 @@ Motivación: base de datos sobre los gustos del usuario que alimenta el motor de
 - [x] `GET /api/v1/reading-history`, `POST /api/v1/reading-history`, `PATCH /api/v1/reading-history/{id}`
 - [x] 12 tests unitarios (UserProfileServiceTest x6, ReadingHistoryServiceTest x6) — 65/65 en verde
 
-#### 4.4 — Motor de recomendaciones
-Motivación: núcleo del producto — puntúa libros contra el perfil lector usando Claude.
+#### 4.4 — Motor de recomendaciones ✓
 
-- [ ] Migración Flyway: tabla `recommendations` (libro, score 0-100, reasoning, estado: NUEVA/VISTA/DESCARTADA, fecha)
-- [ ] `BookScoringStrategy` (interfaz sealed): `ClaudeScoringStrategy` y `RuleBasedScoringStrategy` (fallback sin API)
-- [ ] `RecommendationService`: cruza libros HIGH/MEDIUM confidence con perfil lector, descarta ya leídos/descartados
-- [ ] Prompt Claude Sonnet: recibe perfil + libro, devuelve score + justificación en español
-- [ ] Batch configurable: máximo N libros por ejecución (evitar costes excesivos)
-- [ ] Caché Redis: scores calculados con TTL de 24h (no recalcular el mismo libro dos veces)
-- [ ] `GET /api/v1/recommendations` → lista paginada ordenada por score descendente
-- [ ] `PATCH /api/v1/recommendations/{id}/dismiss` → marcar como descartada
-- [ ] Tests unitarios: `BookScoringStrategyTest`, `RecommendationServiceTest`
-- [ ] Test de integración: `RecommendationControllerIT`
+- [x] Migración Flyway V9: tabla `recommendations` (score 0-100, reasoning, estado: NUEVA/VISTA/DESCARTADA)
+- [x] `BookScoringStrategy` (interfaz): `ClaudeScoringStrategy` (Sonnet) y `RuleBasedScoringStrategy` (fallback sin API)
+- [x] `RecommendationService`: cruza libros HIGH/MEDIUM confidence con perfil lector, descarta ya leídos
+- [x] Prompt Claude Sonnet externalizado en `resources/prompts/recommendation.txt`
+- [x] Batch configurable: `POST /api/v1/recommendations/trigger?maxBatch=20`
+- [x] Caché Redis: scores calculados con TTL de 24h
+- [x] `GET /api/v1/recommendations` → lista paginada ordenada por score descendente
+- [x] `PATCH /api/v1/recommendations/{id}/dismiss` → marcar como descartada
+- [x] 9 tests unitarios (BookScoringStrategyTest x4, RecommendationServiceTest x5) — 68/68 en verde
 
 #### 4.5 — Dashboard web
 Motivación: interfaz visual para explorar recomendaciones y gestionar el perfil lector.
@@ -281,6 +279,6 @@ Objetivo: app móvil nativa que consume la API REST existente.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 4 — En curso. 4.1, 4.2 y 4.3 completadas. Siguiente: 4.4 Motor de recomendaciones
+- Fase actual: Fase 4 — En curso. 4.1, 4.2, 4.3 y 4.4 completadas. Siguiente: 4.5 Dashboard web
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop

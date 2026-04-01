@@ -4,16 +4,12 @@ import java.util.List;
 
 /**
  * Preferencias lectoras del usuario usadas por el motor de scoring.
- * Se construye a partir de UserProfile más el historial de scores.
+ * Se construye a partir de UserProfile más el historial de lectura con status READ.
  */
 public record UserPreferences(
         List<String> favoriteGenres,
         List<String> favoriteAuthors,
-        List<String> avoidedGenres,
-        List<String> readBooks,
-        int preferredMaxReadingTimeHours
-) {
-    public static UserPreferences empty() {
-        return new UserPreferences(List.of(), List.of(), List.of(), List.of(), 12);
-    }
-}
+        String preferredLanguage,
+        int minScore,
+        List<String> completedBookTitles
+) {}

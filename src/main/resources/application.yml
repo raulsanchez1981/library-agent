@@ -51,6 +51,10 @@ ingestion:
 anthropic:
   api-key: ${ANTHROPIC_API_KEY}
 
+recommendation:
+  claude-model: ${RECOMMENDATION_CLAUDE_MODEL:claude-sonnet-4-6}
+  user-email: ${RECOMMENDATION_USER_EMAIL:}
+
 management:
   endpoints:
     web:
