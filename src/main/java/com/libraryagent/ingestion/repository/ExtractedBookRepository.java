@@ -1,5 +1,6 @@
 package com.libraryagent.ingestion.repository;
 
+import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.model.ExtractedBookEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -17,4 +18,6 @@ public interface ExtractedBookRepository extends JpaRepository<ExtractedBookEnti
     long countByEnrichedFalse();
 
     List<ExtractedBookEntity> findByEnrichedTrueAndAuthorIsNull();
+
+    List<ExtractedBookEntity> findByEnrichedTrueAndConfidenceIn(List<Confidence> confidences);
 }
