@@ -216,12 +216,12 @@ Stack: Next.js 14+ (App Router), TypeScript, Tailwind CSS. Dentro del monorepo e
 - [x] Sidebar muestra nombre/email del usuario autenticado y botón de logout
 - [x] `access_token` de Authentik guardado en sesión para propagar a la API Spring Boot
 
-##### 4.5.3 — Página de recomendaciones
-- [ ] `GET /api/v1/recommendations` → lista paginada con score, título, autor, justificación Claude1
-- [ ] Badge de score con color por rango (verde ≥80, amarillo 60-79, rojo <60)
-- [ ] Botón "Descartar" por recomendación → `PATCH /api/v1/recommendations/{id}/dismiss`
-- [ ] Botón "Trigger scoring" → `POST /api/v1/recommendations/trigger` (solo ADMIN)
-- [ ] Paginación y estado de carga/vacío
+##### 4.5.3 — Página de recomendaciones ✓
+- [x] `GET /api/v1/recommendations` → lista paginada con score, título, autor, justificación Claude
+- [x] Badge de score con color por rango (verde ≥80, amarillo 60-79, rojo <60)
+- [x] Botón "Descartar" con UI optimista → `PATCH /api/v1/recommendations/{id}/dismiss`
+- [x] Botón "Lanzar scoring" con feedback → `POST /api/v1/recommendations/trigger`
+- [x] Paginación y skeleton de carga
 
 ##### 4.5.4 — Páginas de perfil e historial
 - [ ] Perfil: formulario para editar géneros favoritos, autores y umbral mínimo de score (`PUT /api/v1/profile`)
@@ -303,6 +303,6 @@ Objetivo: app móvil nativa que consume la API REST existente.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 4 — En curso. 4.1, 4.2, 4.3 y 4.4 completadas. Siguiente: 4.5.1 Scaffolding dashboard
+- Fase actual: Fase 4 — En curso. 4.1–4.4 y 4.5.1–4.5.3 completadas. Siguiente: 4.5.4 Perfil e historial
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop
