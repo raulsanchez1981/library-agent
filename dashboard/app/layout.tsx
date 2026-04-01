@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
+import SessionProvider from "@/components/session-provider";
 import "./globals.css";
 
 const geist = Geist({ subsets: ["latin"] });
@@ -15,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${geist.className} h-full`}>
       <body className="h-full bg-zinc-50 text-zinc-900 antialiased">
-        {children}
+        <SessionProvider>{children}</SessionProvider>
       </body>
     </html>
   );

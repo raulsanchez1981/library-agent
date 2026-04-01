@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 import clsx from "clsx";
 
 const navItems = [
@@ -42,6 +43,10 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+
+  const userName = session?.user?.name ?? "Usuario";
+  const userInitial = userName.charAt(0).toUpperCase();
 
   return (
     <aside className="flex h-full w-64 flex-col bg-zinc-900 text-zinc-100">
@@ -70,16 +75,27 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Footer del sidebar — placeholder de usuario (se rellena en 4.5.2) */}
-      <div className="border-t border-zinc-800 px-6 py-4">
+      {/* Usuario + logout */}
+      <div className="border-t border-zinc-800 px-4 py-4">
         <div className="flex items-center gap-3">
-          <div className="h-8 w-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-medium text-zinc-300">
-            R
+          <div className="h-8 w-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-medium text-zinc-300 shrink-0">
+            {userInitial}
           </div>
-          <div className="min-w-0">
-            <p className="text-sm font-medium text-zinc-200 truncate">Raul Sanchez</p>
-            <p className="text-xs text-zinc-500 truncate">admin</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-zinc-200 truncate">{userName}</p>
+            <p className="text-xs text-zinc-500 truncate">{session?.user?.email ?? ""}</p>
           </div>
+          <button
+            onClick={() => signOut()}
+            title="Cerrar sesión"
+            className="text-zinc-500 hover:text-zinc-300 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+              />
+            </svg>
+          </button>
         </div>
       </div>
     </aside>
