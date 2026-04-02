@@ -7,6 +7,9 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.access.prepost.PreAuthorize;
+import com.libraryagent.ingestion.repository.ExtractedBookRepository;
+import com.libraryagent.ingestion.service.BibliotecaService;
+import com.libraryagent.ingestion.service.ExtractedBookAdminService;
 import com.libraryagent.recommendation.service.RecommendationService;
 import com.libraryagent.userprofile.service.ReadingHistoryService;
 import com.libraryagent.userprofile.service.UserProfileService;
@@ -41,6 +44,15 @@ class SecurityConfigTest {
 
     @MockitoBean
     ReadingHistoryService readingHistoryService;
+
+    @MockitoBean
+    ExtractedBookRepository extractedBookRepository;
+
+    @MockitoBean
+    ExtractedBookAdminService extractedBookAdminService;
+
+    @MockitoBean
+    BibliotecaService bibliotecaService;
 
     // Registra el TestController en el contexto — @WebMvcTest no escanea clases internas
     @TestConfiguration

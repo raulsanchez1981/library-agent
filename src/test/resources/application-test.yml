@@ -33,6 +33,10 @@ spring:
 anthropic:
   api-key: test-api-key
 
+google:
+  books:
+    api-key: test-google-books-key
+
 logging:
   level:
     com.libraryagent: DEBUG

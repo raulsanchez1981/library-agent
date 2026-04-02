@@ -125,7 +125,7 @@ class ReadingHistoryServiceTest {
         when(historyRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         UpdateReadingHistoryRequest request = new UpdateReadingHistoryRequest(
-                ReadingStatus.IN_PROGRESS, null, null, null, null
+                null, null, ReadingStatus.IN_PROGRESS, null, null, null, null
         );
 
         // When
@@ -145,7 +145,7 @@ class ReadingHistoryServiceTest {
 
         // When / Then
         assertThatThrownBy(() -> service.update(profileId, historyId,
-                new UpdateReadingHistoryRequest(null, null, null, null, null)))
+                new UpdateReadingHistoryRequest(null, null, null, null, null, null, null)))
                 .isInstanceOf(LibraryAgentException.class);
     }
 

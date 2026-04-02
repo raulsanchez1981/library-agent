@@ -1,12 +1,14 @@
 package com.libraryagent.ingestion.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.libraryagent.ingestion.entity.AuthorEntity;
 import com.libraryagent.ingestion.extractor.ClaudeGateway;
 import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.extractor.EnrichmentSource;
 import com.libraryagent.ingestion.extractor.OpenLibraryClient;
 import com.libraryagent.ingestion.extractor.SpanishEdition;
 import com.libraryagent.ingestion.model.ExtractedBookEntity;
+import com.libraryagent.ingestion.repository.AuthorRepository;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,14 +29,16 @@ import static org.mockito.Mockito.*;
 class BookEnrichmentServiceTest {
 
     @Mock ExtractedBookRepository repository;
+    @Mock AuthorRepository authorRepository;
     @Mock ClaudeGateway claudeGateway;
     @Mock OpenLibraryClient openLibraryClient;
+    @Mock ExtractedBookAdminService extractedBookAdminService;
 
     BookEnrichmentService service;
 
     @BeforeEach
     void setUp() {
-        service = new BookEnrichmentService(repository, claudeGateway, openLibraryClient, new ObjectMapper());
+        service = new BookEnrichmentService(repository, authorRepository, claudeGateway, openLibraryClient, new ObjectMapper(), extractedBookAdminService);
     }
 
     // ── Caso 1: SONNET + HIGH ─────────────────────────────────────────────────
@@ -193,6 +197,23 @@ class BookEnrichmentServiceTest {
         // Then
         verify(claudeGateway, never()).enrichBooksBatchJson(anyString());
         verify(repository, never()).saveAll(any());
+        verify(extractedBookAdminService, never()).linkUnverifiedBooks();
+    }
+
+    @Test
+    void shouldCallLinkUnverifiedBooksAfterEnrichingBatch() {
+        // Given
+        ExtractedBookEntity entity = pendingBook("Dune", "Frank Herbert");
+        when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
+        when(claudeGateway.enrichBooksBatchJson(anyString()))
+                .thenReturn("[{\"titleEs\":\"Dune\",\"authorCorrected\":\"Frank Herbert\",\"isSaga\":false}]");
+        when(openLibraryClient.findBySpanishTitle("Dune")).thenReturn(Optional.empty());
+
+        // When
+        service.enrichPending();
+
+        // Then — linkUnverifiedBooks se invoca una vez, al final del pipeline
+        verify(extractedBookAdminService, times(1)).linkUnverifiedBooks();
     }
 
     @Test
@@ -259,6 +280,90 @@ class BookEnrichmentServiceTest {
         assertThat(book1.getAuthorCorrected()).isEqualTo("Brandon Sanderson");
         assertThat(book2.getAuthor()).isNull();
         verify(repository).saveAll(any());
+    }
+
+    // ── Author find-or-create ─────────────────────────────────────────────────
+
+    @Test
+    void shouldCreateAuthorEntityWhenAuthorCorrectedIsSet() {
+        // Given
+        ExtractedBookEntity entity = pendingBook("The Name of the Wind", null);
+        when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
+        when(claudeGateway.enrichBooksBatchJson(anyString()))
+                .thenReturn("[{\"titleEs\":\"El nombre del viento\",\"authorCorrected\":\"Patrick Rothfuss\",\"isSaga\":false}]");
+        when(openLibraryClient.findBySpanishTitle("El nombre del viento")).thenReturn(Optional.empty());
+
+        AuthorEntity authorEntity = new AuthorEntity("Patrick Rothfuss");
+        when(authorRepository.findByNameIgnoreCase("Patrick Rothfuss")).thenReturn(Optional.empty());
+        when(authorRepository.save(any(AuthorEntity.class))).thenReturn(authorEntity);
+
+        // When
+        service.enrichPending();
+
+        // Then — se crea el autor y se asocia al libro
+        assertThat(entity.getAuthors()).hasSize(1);
+        assertThat(entity.getAuthors().get(0).getName()).isEqualTo("Patrick Rothfuss");
+        verify(authorRepository).save(any(AuthorEntity.class));
+    }
+
+    @Test
+    void shouldReuseExistingAuthorEntityWhenAuthorAlreadyExists() {
+        // Given
+        ExtractedBookEntity entity = pendingBook("The Final Empire", null);
+        when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
+        when(claudeGateway.enrichBooksBatchJson(anyString()))
+                .thenReturn("[{\"titleEs\":\"El Imperio Final\",\"authorCorrected\":\"Brandon Sanderson\",\"isSaga\":false}]");
+        when(openLibraryClient.findBySpanishTitle("El Imperio Final")).thenReturn(Optional.empty());
+
+        AuthorEntity existing = new AuthorEntity("Brandon Sanderson");
+        when(authorRepository.findByNameIgnoreCase("Brandon Sanderson")).thenReturn(Optional.of(existing));
+
+        // When
+        service.enrichPending();
+
+        // Then — se recupera el existente, no se crea uno nuevo
+        assertThat(entity.getAuthors()).hasSize(1);
+        verify(authorRepository, never()).save(any(AuthorEntity.class));
+    }
+
+    @Test
+    void shouldParseMultipleAuthorsFromAuthorCorrected() {
+        // Given — obra con dos autores separados por " & "
+        ExtractedBookEntity entity = pendingBook("Good Omens", null);
+        when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
+        when(claudeGateway.enrichBooksBatchJson(anyString()))
+                .thenReturn("[{\"titleEs\":\"Buenos presagios\",\"authorCorrected\":\"Terry Pratchett & Neil Gaiman\",\"isSaga\":false}]");
+        when(openLibraryClient.findBySpanishTitle("Buenos presagios")).thenReturn(Optional.empty());
+
+        AuthorEntity pratchett = new AuthorEntity("Terry Pratchett");
+        AuthorEntity gaiman = new AuthorEntity("Neil Gaiman");
+        when(authorRepository.findByNameIgnoreCase("Terry Pratchett")).thenReturn(Optional.empty());
+        when(authorRepository.findByNameIgnoreCase("Neil Gaiman")).thenReturn(Optional.empty());
+        when(authorRepository.save(any(AuthorEntity.class))).thenReturn(pratchett).thenReturn(gaiman);
+
+        // When
+        service.enrichPending();
+
+        // Then — ambos autores se crean y asocian
+        assertThat(entity.getAuthors()).hasSize(2);
+        verify(authorRepository, times(2)).save(any(AuthorEntity.class));
+    }
+
+    @Test
+    void shouldNotCreateAuthorsWhenAuthorCorrectedIsNull() {
+        // Given — Sonnet no conoce al autor ni la traducción
+        ExtractedBookEntity entity = pendingBook("Dungeon Crawler Carl", null);
+        when(repository.findByEnrichedFalse()).thenReturn(List.of(entity));
+        when(claudeGateway.enrichBooksBatchJson(anyString()))
+                .thenReturn("[{\"titleEs\":null,\"authorCorrected\":null,\"isSaga\":false}]");
+        when(openLibraryClient.findSpanishEdition("Dungeon Crawler Carl")).thenReturn(Optional.empty());
+
+        // When
+        service.enrichPending();
+
+        // Then — no se interactúa con authorRepository
+        assertThat(entity.getAuthors()).isEmpty();
+        verifyNoInteractions(authorRepository);
     }
 
     // --- Helpers ---

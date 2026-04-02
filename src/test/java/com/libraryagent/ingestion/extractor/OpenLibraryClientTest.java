@@ -50,7 +50,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name,cover_i",
                         "The Mists of Avalon"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
         server.expect(requestTo(
@@ -93,7 +93,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name,cover_i",
                         "Dune"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
         server.expect(requestTo(
@@ -120,7 +120,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name,cover_i",
                         "Some Unknown Book"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
 
@@ -155,7 +155,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name,cover_i",
                         "Gridlinked"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
         server.expect(requestTo(
@@ -183,7 +183,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name,cover_i",
                         "The Devils"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
 
@@ -208,7 +208,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name,cover_i",
                         "Cradle"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
 
@@ -223,7 +223,7 @@ class OpenLibraryClientTest {
     void shouldReturnEmptyWhenApiReturnsServerError() {
         // Given
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&limit=5&fields=key,title,author_name,cover_i",
                         "Dune"))
                 .andRespond(withServerError());
 
@@ -260,7 +260,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=5&fields=key,title,author_name,cover_i",
                         "El Señor de los Anillos"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
         server.expect(requestTo(
@@ -286,7 +286,7 @@ class OpenLibraryClientTest {
                 }
                 """;
         server.expect(requestToUriTemplate(
-                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=5&fields=key,title,author_name",
+                        "https://openlibrary.org/search.json?title={t}&language=spa&limit=5&fields=key,title,author_name,cover_i",
                         "Los magos"))
                 .andRespond(withSuccess(searchJson, MediaType.APPLICATION_JSON));
 
