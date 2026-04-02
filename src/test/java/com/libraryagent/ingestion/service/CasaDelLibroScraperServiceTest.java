@@ -17,18 +17,25 @@ class CasaDelLibroScraperServiceTest {
     private static final String SAMPLE_HTML = """
             <html>
             <head>
-              <meta property="og:image" content="https://img.casadellibro.com/portada.jpg"/>
+              <meta property="og:image" content="https://imagessl7.casadellibro.com/a/l/t1/87/9788413143187.jpg"/>
             </head>
             <body>
-              <div class="description-text">Una novela épica sobre la búsqueda del conocimiento.</div>
-              <div class="book-details-tags">
-                <a href="#">Fantasía</a>
-                <a href="#">Aventura</a>
+              <div class="portada svelte-tu5qay">
+                <cdl-img class="svelte-k5yotb">
+                  <img class="svelte-k5yotb"
+                       src="https://imagessl7.casadellibro.com/a/l/s5/87/9788413143187.webp"
+                       alt="portada del libro"/>
+                </cdl-img>
               </div>
-              <dl class="book-details">
-                <dt>ISBN</dt><dd>978-84-12345-67-8</dd>
-                <dt>Editorial</dt><dd>Minotauro</dd>
-                <dt>Páginas</dt><dd>450</dd>
+              <div class="resumen svelte-g9q8l2">
+                <div class="resumen-content svelte-g9q8l2">Una novela épica sobre la búsqueda del conocimiento.</div>
+              </div>
+              <span class="genero svelte-my94d2">Fantasía</span>
+              <span class="genero svelte-my94d2">Aventura</span>
+              <dl class="campo svelte-1yhk452">
+                <dt>ISBN:</dt><dd>978-84-12345-67-8</dd>
+                <dt>Editorial:</dt><dd>Minotauro</dd>
+                <dt>Número de páginas:</dt><dd>450</dd>
               </dl>
             </body>
             </html>
@@ -51,16 +58,16 @@ class CasaDelLibroScraperServiceTest {
     }
 
     @Test
-    void shouldExtractCoverUrlFromOgImageMeta() {
+    void shouldExtractCoverUrlFromPortadaImg() {
         // When
         CdlEnrichmentResultDto result = service.scrape("https://www.casadellibro.com/libro");
 
-        // Then
-        assertThat(result.coverUrl()).isEqualTo("https://img.casadellibro.com/portada.jpg");
+        // Then — prefiere .portada img (s5, mayor resolución) sobre og:image (t1)
+        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/s5/87/9788413143187.webp");
     }
 
     @Test
-    void shouldExtractSynopsisFromDescriptionText() {
+    void shouldExtractSynopsisFromResumenContent() {
         // When
         CdlEnrichmentResultDto result = service.scrape("https://www.casadellibro.com/libro");
 
@@ -69,7 +76,7 @@ class CasaDelLibroScraperServiceTest {
     }
 
     @Test
-    void shouldExtractGenresFromTagLinks() {
+    void shouldExtractGenresFromGeneroSpans() {
         // When
         CdlEnrichmentResultDto result = service.scrape("https://www.casadellibro.com/libro");
 
@@ -88,7 +95,7 @@ class CasaDelLibroScraperServiceTest {
         var sheet = mapper.readValue(result.technicalSheet(), java.util.Map.class);
         assertThat(sheet).containsEntry("ISBN", "978-84-12345-67-8");
         assertThat(sheet).containsEntry("Editorial", "Minotauro");
-        assertThat(sheet).containsEntry("Páginas", "450");
+        assertThat(sheet).containsEntry("Número de páginas", "450");
     }
 
     @Test

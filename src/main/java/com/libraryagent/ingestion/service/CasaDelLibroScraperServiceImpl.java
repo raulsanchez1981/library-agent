@@ -58,14 +58,8 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
     }
 
     private String extractCoverUrl(Document document) {
-        // og:image es la opción más fiable
-        String ogImage = document.select("meta[property=og:image]").attr("content");
-        if (!ogImage.isBlank()) {
-            return ogImage;
-        }
-
-        // Fallback: img con clase que contenga "cover" o "portada"
-        Element coverImg = document.selectFirst("img[class*=cover], img[class*=portada]");
+        // Imagen principal dentro del contenedor .portada — calidad s5 (mayor resolución)
+        Element coverImg = document.selectFirst(".portada img, cdl-img img");
         if (coverImg != null) {
             String src = coverImg.attr("abs:src");
             if (!src.isBlank()) {
@@ -73,22 +67,20 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
             }
         }
 
-        return null;
+        // Fallback: og:image (thumbnail t1, menor calidad)
+        String ogImage = document.select("meta[property=og:image]").attr("content");
+        return ogImage.isBlank() ? null : ogImage;
     }
 
     private String extractSynopsis(Document document) {
-        String text = document.select(
-                ".description-text, .synopsis, [itemprop=description], " +
-                ".book-description, .book-synopsis, .product-description"
-        ).text();
+        // CDL usa .resumen-content para el texto de la sinopsis
+        String text = document.select(".resumen-content").text();
         return text.isBlank() ? null : text;
     }
 
     private List<String> extractGenres(Document document) {
-        Elements genreElements = document.select(
-                ".book-details-tags a, .category a, [itemprop=genre], " +
-                ".book-categories a, .genres a, .tags a"
-        );
+        // CDL usa <span class="genero ..."> para cada género
+        Elements genreElements = document.select("span.genero");
 
         return genreElements.stream()
                 .map(Element::text)
@@ -101,8 +93,8 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
     private String extractTechnicalSheet(Document document) {
         Map<String, String> sheet = new LinkedHashMap<>();
 
-        // Patrón dt/dd
-        Elements dts = document.select(".book-details dt, .technical-data dt, dl dt");
+        // CDL usa <dl class="campo ..."> con pares <dt>/<dd>
+        Elements dts = document.select("dl.campo dt");
         for (Element dt : dts) {
             Element dd = dt.nextElementSibling();
             if (dd != null && dd.tagName().equals("dd")) {
@@ -110,21 +102,6 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
                 String value = dd.text().trim();
                 if (!key.isBlank() && !value.isBlank()) {
                     sheet.put(key, value);
-                }
-            }
-        }
-
-        // Patrón label/value spans
-        if (sheet.isEmpty()) {
-            Elements labels = document.select("span.label, .book-data-label, .detail-label");
-            for (Element label : labels) {
-                Element value = label.nextElementSibling();
-                if (value != null) {
-                    String key = label.text().trim().replaceAll(":$", "");
-                    String val = value.text().trim();
-                    if (!key.isBlank() && !val.isBlank()) {
-                        sheet.put(key, val);
-                    }
                 }
             }
         }
