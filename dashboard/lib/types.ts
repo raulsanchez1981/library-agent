@@ -13,12 +13,15 @@ export interface ExtractedBookAdminDto {
   verifiedTitleName: string | null;
   authorCorrected: string | null;
   authors: string[];
+  verifiedTitleId: string | null;
   availableInSpanish: boolean;
   enrichmentSource: EnrichmentSource | null;
   confidence: Confidence | null;
   enriched: boolean;
   enrichedAt: string | null;
   createdAt: string;
+  coverUrl: string | null;
+  synopsis: string | null;
 }
 
 export interface UpdateExtractedBookRequest {
@@ -46,6 +49,21 @@ export interface VerifiedTitleDto {
   coverUrl: string | null;
   synopsis: string | null;
   googleBooksId: string | null;
+}
+
+export interface GenreDto {
+  id: string;
+  name: string;
+}
+
+export interface VerifiedTitleDetailDto {
+  id: string;
+  name: string;
+  coverUrl: string | null;
+  synopsis: string | null;
+  technicalSheet: string | null;
+  casaDelLibroUrl: string | null;
+  genres: GenreDto[];
 }
 
 export interface SpringPage<T> {

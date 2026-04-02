@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { updateAdminBook } from "@/app/actions/admin-books";
+import { enrichFromCdl } from "@/app/actions/biblioteca";
 import type {
   Confidence,
   ExtractedBookAdminDto,
@@ -395,7 +396,11 @@ function EditBookModal({
   onSaved: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
+  const [isEnriching, startEnrichTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [enrichError, setEnrichError] = useState<string | null>(null);
+  const [enrichSuccess, setEnrichSuccess] = useState(false);
+  const [cdlUrl, setCdlUrl] = useState("");
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -424,6 +429,20 @@ function EditBookModal({
         onSaved();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
+      }
+    });
+  }
+
+  function handleEnrich() {
+    if (!book.verifiedTitleId || !cdlUrl.trim()) return;
+    setEnrichError(null);
+    setEnrichSuccess(false);
+    startEnrichTransition(async () => {
+      try {
+        await enrichFromCdl(book.verifiedTitleId!, cdlUrl.trim());
+        setEnrichSuccess(true);
+      } catch (err) {
+        setEnrichError(err instanceof Error ? err.message : "Error al enriquecer");
       }
     });
   }
@@ -546,6 +565,34 @@ function EditBookModal({
               Es una saga
             </label>
           </div>
+
+          {/* Enriquecimiento con Casa del Libro */}
+          {book.verifiedTitleId && (
+            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 space-y-2">
+              <p className="text-xs font-medium text-zinc-600">Enriquecer con Casa del Libro</p>
+              <div className="flex gap-2">
+                <input
+                  type="url"
+                  value={cdlUrl}
+                  onChange={(e) => setCdlUrl(e.target.value)}
+                  placeholder="https://www.casadellibro.com/libro-..."
+                  className="flex-1 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                />
+                <button
+                  type="button"
+                  onClick={handleEnrich}
+                  disabled={isEnriching || !cdlUrl.trim()}
+                  className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-100 disabled:opacity-50 transition-colors"
+                >
+                  {isEnriching ? "Obteniendo…" : "Enriquecer"}
+                </button>
+              </div>
+              {enrichSuccess && (
+                <p className="text-xs text-emerald-600">Portada, sinopsis y ficha técnica actualizadas.</p>
+              )}
+              {enrichError && <p className="text-xs text-red-600">{enrichError}</p>}
+            </div>
+          )}
 
           {/* Aviso de sellado automático */}
           <p className="text-xs text-violet-600 bg-violet-50 rounded-lg px-3 py-2">

@@ -1,6 +1,7 @@
 import { fetchBiblioteca } from "@/app/actions/biblioteca";
 import type { VerifiedTitleDto } from "@/lib/types";
 import Image from "next/image";
+import Link from "next/link";
 
 export default async function BibliotecaPage() {
   const books = await fetchBiblioteca();
@@ -33,7 +34,7 @@ export default async function BibliotecaPage() {
 
 function BookCard({ book }: { book: VerifiedTitleDto }) {
   return (
-    <div className="group flex flex-col gap-2">
+    <Link href={`/biblioteca/${book.id}`} className="group flex flex-col gap-2">
       {/* Portada */}
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-zinc-100 shadow-sm ring-1 ring-zinc-200 transition-shadow group-hover:shadow-md">
         {book.coverUrl ? (
@@ -67,6 +68,6 @@ function BookCard({ book }: { book: VerifiedTitleDto }) {
           </p>
         )}
       </div>
-    </div>
+    </Link>
   );
 }

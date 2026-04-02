@@ -25,6 +25,7 @@ public record ExtractedBookAdminDto(
         Instant enrichedAt,
         Instant createdAt,
         List<String> authors,
+        UUID verifiedTitleId,
         String verifiedTitleName,
         String coverUrl,
         String synopsis
@@ -35,6 +36,7 @@ public record ExtractedBookAdminDto(
                 .map(AuthorEntity::getName)
                 .toList();
         VerifiedTitleEntity vt = e.getVerifiedTitle();
+        UUID verifiedTitleId = vt != null ? vt.getId() : null;
         String verifiedTitleName = vt != null ? vt.getName() : null;
         String coverUrl = vt != null ? vt.getCoverUrl() : null;
         String synopsis = vt != null ? vt.getSynopsis() : null;
@@ -53,6 +55,7 @@ public record ExtractedBookAdminDto(
                 e.getEnrichedAt(),
                 e.getCreatedAt(),
                 authorNames,
+                verifiedTitleId,
                 verifiedTitleName,
                 coverUrl,
                 synopsis
