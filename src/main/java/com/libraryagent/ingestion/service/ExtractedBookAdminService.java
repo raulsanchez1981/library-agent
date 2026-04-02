@@ -17,6 +17,4 @@ public interface ExtractedBookAdminService {
     ExtractedBookAdminDto update(UUID id, UpdateExtractedBookRequest request);
 
     void linkUnverifiedBooks();
-
-    void enrichVerifiedTitlesWithoutCover();
 }

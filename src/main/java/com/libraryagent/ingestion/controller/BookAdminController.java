@@ -52,12 +52,6 @@ public class BookAdminController {
         return ResponseEntity.ok(adminService.findById(id));
     }
 
-    @PostMapping("/enrich-covers")
-    public ResponseEntity<Void> enrichCovers() {
-        adminService.enrichVerifiedTitlesWithoutCover();
-        return ResponseEntity.noContent().build();
-    }
-
     @PatchMapping("/{id}")
     public ResponseEntity<ExtractedBookAdminDto> update(
             @PathVariable UUID id,

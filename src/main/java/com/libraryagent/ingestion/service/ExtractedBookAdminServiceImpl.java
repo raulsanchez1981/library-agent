@@ -1,8 +1,6 @@
 package com.libraryagent.ingestion.service;
 
-import com.libraryagent.ingestion.client.GoogleBooksClient;
 import com.libraryagent.ingestion.dto.ExtractedBookAdminDto;
-import com.libraryagent.ingestion.extractor.OpenLibraryClient;
 import com.libraryagent.ingestion.dto.UpdateExtractedBookRequest;
 import com.libraryagent.ingestion.entity.AuthorEntity;
 import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
@@ -21,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -30,20 +27,14 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     private final ExtractedBookRepository repository;
     private final AuthorRepository authorRepository;
     private final VerifiedTitleRepository verifiedTitleRepository;
-    private final GoogleBooksClient googleBooksClient;
-    private final OpenLibraryClient openLibraryClient;
 
     public ExtractedBookAdminServiceImpl(
             ExtractedBookRepository repository,
             AuthorRepository authorRepository,
-            VerifiedTitleRepository verifiedTitleRepository,
-            GoogleBooksClient googleBooksClient,
-            OpenLibraryClient openLibraryClient) {
+            VerifiedTitleRepository verifiedTitleRepository) {
         this.repository = repository;
         this.authorRepository = authorRepository;
         this.verifiedTitleRepository = verifiedTitleRepository;
-        this.googleBooksClient = googleBooksClient;
-        this.openLibraryClient = openLibraryClient;
     }
 
     @Override
@@ -105,13 +96,6 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
                     .orElseGet(() -> verifiedTitleRepository.save(new VerifiedTitleEntity(normalized)));
             entity.setVerifiedTitle(vt);
 
-            // Enriquecer con portada (OL) y sinopsis (Google Books) si aún no tiene datos
-            if (vt.getCoverUrl() == null) {
-                String authorName = entity.getAuthors().isEmpty()
-                        ? entity.getAuthorCorrected()
-                        : entity.getAuthors().get(0).getName();
-                enrichWithExternalData(vt, authorName, entity.getTitle());
-            }
         }
 
         // Marcar autores vinculados como verified
@@ -168,52 +152,6 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
                 }
             });
         });
-    }
-
-    @Override
-    @Transactional
-    public void enrichVerifiedTitlesWithoutCover() {
-        verifiedTitleRepository.findAll().stream()
-                .filter(vt -> vt.getCoverUrl() == null)
-                .forEach(vt -> {
-                    List<ExtractedBookEntity> linked = repository
-                            .findByVerifiedTitleAndConfidence(vt, Confidence.VERIFIED);
-                    String authorName = linked.stream()
-                            .flatMap(b -> b.getAuthors().stream())
-                            .map(AuthorEntity::getName)
-                            .findFirst()
-                            .orElse(null);
-                    // Título original en inglés como fallback
-                    String originalTitle = linked.stream()
-                            .map(ExtractedBookEntity::getTitle)
-                            .findFirst()
-                            .orElse(null);
-                    enrichWithExternalData(vt, authorName, originalTitle);
-                });
-    }
-
-    private void enrichWithExternalData(VerifiedTitleEntity vt, String authorName, String originalTitle) {
-        boolean changed = false;
-
-        // Portada: Open Library (más fiable que Google Books)
-        Optional<String> coverUrl = openLibraryClient.findCoverUrl(vt.getName(), originalTitle);
-        if (coverUrl.isPresent()) {
-            vt.setCoverUrl(coverUrl.get());
-            changed = true;
-        }
-
-        // Sinopsis: Google Books
-        Optional<GoogleBooksClient.GoogleBooksResult> gbResult =
-                googleBooksClient.search(vt.getName(), authorName, originalTitle);
-        if (gbResult.isPresent()) {
-            GoogleBooksClient.GoogleBooksResult result = gbResult.get();
-            vt.setGoogleBooksId(result.googleBooksId());
-            if (result.synopsis() != null) vt.setSynopsis(result.synopsis());
-            if (vt.getCoverUrl() == null && result.coverUrl() != null) vt.setCoverUrl(result.coverUrl());
-            changed = true;
-        }
-
-        if (changed) verifiedTitleRepository.save(vt);
     }
 
     // --- Specifications ---

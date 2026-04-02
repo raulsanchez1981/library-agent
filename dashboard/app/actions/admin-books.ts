@@ -37,14 +37,6 @@ export async function fetchAdminBooks(params: {
   return res.json();
 }
 
-export async function enrichCovers(): Promise<void> {
-  const res = await apiFetch("/api/v1/admin/books/enrich-covers", {
-    method: "POST",
-  });
-  if (!res.ok) throw new Error("Error al enriquecer portadas");
-  revalidatePath("/biblioteca");
-}
-
 export async function updateAdminBook(
   id: string,
   data: UpdateExtractedBookRequest

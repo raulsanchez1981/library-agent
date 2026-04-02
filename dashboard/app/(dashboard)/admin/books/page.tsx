@@ -1,4 +1,4 @@
-import { fetchAdminBooks, enrichCovers } from "@/app/actions/admin-books";
+import { fetchAdminBooks } from "@/app/actions/admin-books";
 import BooksAdminClient from "@/components/admin/books-admin-client";
 
 export default async function AdminBooksPage({
@@ -36,14 +36,6 @@ export default async function AdminBooksPage({
               : "Sin libros ingestados todavía"}
           </p>
         </div>
-        <form action={enrichCovers}>
-          <button
-            type="submit"
-            className="rounded-lg border border-zinc-200 px-3 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
-          >
-            Enriquecer portadas
-          </button>
-        </form>
       </div>
 
       <BooksAdminClient

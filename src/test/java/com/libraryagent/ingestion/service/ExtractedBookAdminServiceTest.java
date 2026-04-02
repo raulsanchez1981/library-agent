@@ -1,8 +1,6 @@
 package com.libraryagent.ingestion.service;
 
-import com.libraryagent.ingestion.client.GoogleBooksClient;
 import com.libraryagent.ingestion.dto.ExtractedBookAdminDto;
-import com.libraryagent.ingestion.extractor.OpenLibraryClient;
 import com.libraryagent.ingestion.dto.UpdateExtractedBookRequest;
 import com.libraryagent.ingestion.entity.AuthorEntity;
 import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
@@ -46,12 +44,6 @@ class ExtractedBookAdminServiceTest {
 
     @Mock
     VerifiedTitleRepository verifiedTitleRepository;
-
-    @Mock
-    GoogleBooksClient googleBooksClient;
-
-    @Mock
-    OpenLibraryClient openLibraryClient;
 
     @InjectMocks
     ExtractedBookAdminServiceImpl service;
@@ -105,7 +97,7 @@ class ExtractedBookAdminServiceTest {
         VerifiedTitleEntity vt = new VerifiedTitleEntity("Dune");
         when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.of(vt));
         stubLinkUnverifiedBooks();
-        stubGoogleBooksEmpty();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest(
                 "Dune",       // titleEs actualizado
@@ -171,7 +163,7 @@ class ExtractedBookAdminServiceTest {
         VerifiedTitleEntity vt = new VerifiedTitleEntity("Fundación");
         when(verifiedTitleRepository.findByNameIgnoreCase("Fundación")).thenReturn(Optional.of(vt));
         stubLinkUnverifiedBooks();
-        stubGoogleBooksEmpty();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Fundación", null, null, null);
 
@@ -226,7 +218,7 @@ class ExtractedBookAdminServiceTest {
         VerifiedTitleEntity vt = new VerifiedTitleEntity("Fundación");
         when(verifiedTitleRepository.findByNameIgnoreCase("Fundación")).thenReturn(Optional.of(vt));
         stubLinkUnverifiedBooks();
-        stubGoogleBooksEmpty();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Fundación", "Isaac Asimov", null, null);
 
@@ -278,7 +270,7 @@ class ExtractedBookAdminServiceTest {
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Dune", null, null, null);
         when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.empty());
         when(verifiedTitleRepository.save(any(VerifiedTitleEntity.class))).thenReturn(new VerifiedTitleEntity("Dune"));
-        stubGoogleBooksEmpty();
+
 
         // When
         service.update(id, request);
@@ -301,7 +293,7 @@ class ExtractedBookAdminServiceTest {
         when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.empty());
         when(verifiedTitleRepository.save(any(VerifiedTitleEntity.class))).thenReturn(createdVt);
         stubLinkUnverifiedBooks();
-        stubGoogleBooksEmpty();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Dune", null, null, null);
 
@@ -326,7 +318,7 @@ class ExtractedBookAdminServiceTest {
         VerifiedTitleEntity existing = new VerifiedTitleEntity("Fundación");
         when(verifiedTitleRepository.findByNameIgnoreCase("Fundación")).thenReturn(Optional.of(existing));
         stubLinkUnverifiedBooks();
-        stubGoogleBooksEmpty();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Fundación", null, null, null);
 
@@ -395,7 +387,7 @@ class ExtractedBookAdminServiceTest {
 
         VerifiedTitleEntity vt = new VerifiedTitleEntity("Dune");
         when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.of(vt));
-        stubGoogleBooksEmpty();
+
 
         // Libro sin título verificado que coincide por titleEs
         ExtractedBookEntity unlinkedBook = buildEntity(UUID.randomUUID(), "Dune", "F. Herbert");
@@ -438,68 +430,4 @@ class ExtractedBookAdminServiceTest {
         when(authorRepository.findByVerifiedTrue()).thenReturn(List.of());
     }
 
-    @Test
-    void shouldEnrichVerifiedTitleWithGoogleBooksWhenCoverUrlIsNull() {
-        // Given
-        UUID id = UUID.randomUUID();
-        ExtractedBookEntity entity = buildEntity(id, "Dune", "Frank Herbert");
-
-        when(repository.findById(id)).thenReturn(Optional.of(entity));
-        when(repository.save(entity)).thenReturn(entity);
-
-        VerifiedTitleEntity vt = new VerifiedTitleEntity("Dune");
-        // coverUrl == null → se debe llamar a Google Books
-        when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.of(vt));
-
-        when(openLibraryClient.findCoverUrl(eq("Dune"), any())).thenReturn(Optional.of("https://covers.openlibrary.org/b/id/123-L.jpg"));
-        GoogleBooksClient.GoogleBooksResult gbResult =
-                new GoogleBooksClient.GoogleBooksResult("volABC", "https://cover.url/dune.jpg", "Sinopsis de Dune");
-        when(googleBooksClient.search(eq("Dune"), any(), any())).thenReturn(Optional.of(gbResult));
-        when(verifiedTitleRepository.save(vt)).thenReturn(vt);
-        stubLinkUnverifiedBooks();
-
-        UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Dune", null, null, null);
-
-        // When
-        service.update(id, request);
-
-        // Then — el VerifiedTitle queda enriquecido: portada de OL, sinopsis de Google Books
-        assertThat(vt.getCoverUrl()).isEqualTo("https://covers.openlibrary.org/b/id/123-L.jpg");
-        assertThat(vt.getGoogleBooksId()).isEqualTo("volABC");
-        assertThat(vt.getSynopsis()).isEqualTo("Sinopsis de Dune");
-        verify(verifiedTitleRepository).save(vt);
-    }
-
-    @Test
-    void shouldSkipGoogleBooksWhenVerifiedTitleAlreadyHasCoverUrl() {
-        // Given
-        UUID id = UUID.randomUUID();
-        ExtractedBookEntity entity = buildEntity(id, "Dune", "Frank Herbert");
-
-        when(repository.findById(id)).thenReturn(Optional.of(entity));
-        when(repository.save(entity)).thenReturn(entity);
-
-        VerifiedTitleEntity vt = new VerifiedTitleEntity("Dune");
-        vt.setCoverUrl("https://existing-cover.url/dune.jpg");
-        when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.of(vt));
-        stubLinkUnverifiedBooks();
-
-        UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Dune", null, null, null);
-
-        // When
-        service.update(id, request);
-
-        // Then — no se llama a Google Books ni OL porque ya tiene portada
-        verify(googleBooksClient, never()).search(any(), any(), any());
-        verify(openLibraryClient, never()).findCoverUrl(any(), any());
-    }
-
-    /**
-     * Stub Google Books para que devuelva vacío — evita efectos secundarios en tests
-     * que no prueban el enriquecimiento con Google Books.
-     */
-    private void stubGoogleBooksEmpty() {
-        when(googleBooksClient.search(any(), any(), any())).thenReturn(Optional.empty());
-        when(openLibraryClient.findCoverUrl(any(), any())).thenReturn(Optional.empty());
-    }
 }
