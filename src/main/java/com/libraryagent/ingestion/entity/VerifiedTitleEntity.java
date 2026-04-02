@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -33,6 +35,20 @@ public class VerifiedTitleEntity {
 
     @Column(name = "synopsis", columnDefinition = "TEXT")
     private String synopsis;
+
+    @Column(name = "casa_del_libro_url", length = 1024)
+    private String casaDelLibroUrl;
+
+    @Column(name = "technical_sheet", columnDefinition = "TEXT")
+    private String technicalSheet;
+
+    @ManyToMany(fetch = FetchType.LAZY)
+    @JoinTable(
+        name = "book_genres",
+        joinColumns = @JoinColumn(name = "verified_title_id"),
+        inverseJoinColumns = @JoinColumn(name = "genre_id")
+    )
+    private List<GenreEntity> genres = new ArrayList<>();
 
     public VerifiedTitleEntity(String name) {
         this.name = name;

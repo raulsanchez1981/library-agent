@@ -10,6 +10,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.service.BibliotecaService;
 import com.libraryagent.ingestion.service.ExtractedBookAdminService;
+import com.libraryagent.ingestion.service.GenreService;
+import com.libraryagent.ingestion.service.VerifiedTitleEnrichService;
 import com.libraryagent.recommendation.service.RecommendationService;
 import com.libraryagent.userprofile.service.ReadingHistoryService;
 import com.libraryagent.userprofile.service.UserProfileService;
@@ -53,6 +55,12 @@ class SecurityConfigTest {
 
     @MockitoBean
     BibliotecaService bibliotecaService;
+
+    @MockitoBean
+    GenreService genreService;
+
+    @MockitoBean
+    VerifiedTitleEnrichService verifiedTitleEnrichService;
 
     // Registra el TestController en el contexto — @WebMvcTest no escanea clases internas
     @TestConfiguration
