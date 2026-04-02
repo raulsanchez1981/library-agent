@@ -1,4 +1,20 @@
-export default function ProfilePage() {
+import { apiFetch } from "@/lib/api";
+import ProfileForm from "@/components/profile/profile-form";
+import type { ApiResponse, UserProfileDto } from "@/lib/types";
+
+async function fetchProfile(): Promise<UserProfileDto> {
+  const res = await apiFetch("/api/v1/profile", { cache: "no-store" });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} — ${body || res.statusText}`);
+  }
+  const json: ApiResponse<UserProfileDto> = await res.json();
+  return json.data;
+}
+
+export default async function ProfilePage() {
+  const profile = await fetchProfile();
+
   return (
     <div className="px-8 py-8">
       <div className="mb-6">
@@ -8,12 +24,9 @@ export default function ProfilePage() {
         </p>
       </div>
 
-      {/* Placeholder — se conecta a la API en 4.5.4 */}
-      <div className="rounded-xl border border-dashed border-zinc-200 bg-white p-12 text-center">
-        <span className="text-4xl">👤</span>
-        <p className="mt-4 text-sm font-medium text-zinc-500">
-          Formulario de preferencias próximamente
-        </p>
+      <div className="max-w-lg rounded-xl border border-zinc-100 bg-white p-6">
+        <p className="text-xs text-zinc-400 mb-6">{profile.email}</p>
+        <ProfileForm profile={profile} />
       </div>
     </div>
   );

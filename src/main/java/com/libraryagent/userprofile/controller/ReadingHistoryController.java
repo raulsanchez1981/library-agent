@@ -56,6 +56,15 @@ public class ReadingHistoryController {
         return ResponseEntity.ok(ApiResponse.ok(updated));
     }
 
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteEntry(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable UUID id) {
+        UUID profileId = resolveProfileId(jwt);
+        readingHistoryService.delete(profileId, id);
+        return ResponseEntity.noContent().build();
+    }
+
     private UUID resolveProfileId(Jwt jwt) {
         return userProfileService.getOrCreateByEmail(jwt.getClaimAsString("email")).id();
     }

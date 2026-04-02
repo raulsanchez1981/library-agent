@@ -29,6 +29,16 @@ const navItems = [
     ),
   },
   {
+    href: "/biblioteca",
+    label: "Biblioteca",
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75}
+          d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+      </svg>
+    ),
+  },
+  {
     href: "/history",
     label: "Historial",
     icon: (
@@ -41,9 +51,22 @@ const navItems = [
   },
 ];
 
+const adminNavItem = {
+  href: "/admin/books",
+  label: "Libros ingestados",
+  icon: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M4 6h16M4 10h16M4 14h10M4 18h6"
+      />
+    </svg>
+  ),
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const isAdmin = (session as { isAdmin?: boolean } | null)?.isAdmin ?? false;
 
   const userName = session?.user?.name ?? "Usuario";
   const userInitial = userName.charAt(0).toUpperCase();
@@ -73,6 +96,28 @@ export default function Sidebar() {
             {label}
           </Link>
         ))}
+
+        {isAdmin && (
+          <>
+            <div className="pt-3 pb-1 px-3">
+              <span className="text-xs font-medium uppercase tracking-widest text-zinc-600">
+                Administración
+              </span>
+            </div>
+            <Link
+              href={adminNavItem.href}
+              className={clsx(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                pathname.startsWith(adminNavItem.href)
+                  ? "bg-zinc-700 text-white"
+                  : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+              )}
+            >
+              {adminNavItem.icon}
+              {adminNavItem.label}
+            </Link>
+          </>
+        )}
       </nav>
 
       {/* Usuario + logout */}

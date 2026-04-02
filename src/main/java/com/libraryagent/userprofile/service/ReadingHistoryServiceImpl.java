@@ -60,6 +60,12 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
         ReadingHistoryEntity entry = historyRepository.findByIdAndProfileId(historyId, profileId)
                 .orElseThrow(() -> LibraryAgentException.notFound("Entrada de historial no encontrada: " + historyId));
 
+        if (request.bookTitle() != null) {
+            entry.setBookTitle(request.bookTitle());
+        }
+        if (request.bookAuthor() != null) {
+            entry.setBookAuthor(request.bookAuthor());
+        }
         if (request.status() != null) {
             entry.setStatus(request.status());
         }
@@ -77,5 +83,13 @@ public class ReadingHistoryServiceImpl implements ReadingHistoryService {
         }
 
         return ReadingHistoryDto.from(historyRepository.save(entry));
+    }
+
+    @Override
+    @Transactional
+    public void delete(UUID profileId, UUID historyId) {
+        ReadingHistoryEntity entry = historyRepository.findByIdAndProfileId(historyId, profileId)
+                .orElseThrow(() -> LibraryAgentException.notFound("Entrada de historial no encontrada: " + historyId));
+        historyRepository.delete(entry);
     }
 }
