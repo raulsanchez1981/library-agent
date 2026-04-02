@@ -223,11 +223,11 @@ Stack: Next.js 14+ (App Router), TypeScript, Tailwind CSS. Dentro del monorepo e
 - [x] Botón "Lanzar scoring" con feedback → `POST /api/v1/recommendations/trigger`
 - [x] Paginación y skeleton de carga
 
-##### 4.5.4 — Páginas de perfil e historial
-- [ ] Perfil: formulario para editar géneros favoritos, autores y umbral mínimo de score (`PUT /api/v1/profile`)
-- [ ] Historial: lista de libros con estado, rating y notas (`GET /api/v1/reading-history`)
-- [ ] Añadir libro al historial con formulario inline (`POST /api/v1/reading-history`)
-- [ ] Cambiar estado de un libro (`PATCH /api/v1/reading-history/{id}`)
+##### 4.5.4 — Páginas de perfil e historial ✓
+- [x] Perfil: formulario para editar géneros favoritos, autores y umbral mínimo de score (`PUT /api/v1/profile`)
+- [x] Historial: lista de libros con estado, rating y notas (`GET /api/v1/reading-history`)
+- [x] Añadir libro al historial con formulario inline (`POST /api/v1/reading-history`)
+- [x] Cambiar estado de un libro (`PATCH /api/v1/reading-history/{id}`)
 
 ##### 4.5.5 — Dockerización y despliegue
 - [ ] `dashboard/Dockerfile` multi-stage (build Node + runtime distroless/node)
@@ -303,6 +303,6 @@ Objetivo: app móvil nativa que consume la API REST existente.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 4 — En curso. 4.1–4.4 y 4.5.1–4.5.3 completadas. Siguiente: 4.5.4 Perfil e historial
+- Fase actual: Fase 4 — En curso. 4.1–4.4 y 4.5.1–4.5.4 completadas. Siguiente: 4.5.5 Dockerización y despliegue del dashboard
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop
