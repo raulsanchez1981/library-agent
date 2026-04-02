@@ -2,12 +2,14 @@ package com.libraryagent.ingestion.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.libraryagent.ingestion.entity.AuthorEntity;
 import com.libraryagent.ingestion.extractor.ClaudeGateway;
 import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.extractor.EnrichmentSource;
 import com.libraryagent.ingestion.extractor.OpenLibraryClient;
 import com.libraryagent.ingestion.extractor.SpanishEdition;
 import com.libraryagent.ingestion.model.ExtractedBookEntity;
+import com.libraryagent.ingestion.repository.AuthorRepository;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,19 +49,25 @@ public class BookEnrichmentService {
     );
 
     private final ExtractedBookRepository repository;
+    private final AuthorRepository authorRepository;
     private final ClaudeGateway claudeGateway;
     private final OpenLibraryClient openLibraryClient;
     private final ObjectMapper objectMapper;
+    private final ExtractedBookAdminService extractedBookAdminService;
 
     public BookEnrichmentService(
             ExtractedBookRepository repository,
+            AuthorRepository authorRepository,
             ClaudeGateway claudeGateway,
             OpenLibraryClient openLibraryClient,
-            ObjectMapper objectMapper) {
+            ObjectMapper objectMapper,
+            ExtractedBookAdminService extractedBookAdminService) {
         this.repository = repository;
+        this.authorRepository = authorRepository;
         this.claudeGateway = claudeGateway;
         this.openLibraryClient = openLibraryClient;
         this.objectMapper = objectMapper;
+        this.extractedBookAdminService = extractedBookAdminService;
     }
 
     /**
@@ -85,6 +93,7 @@ public class BookEnrichmentService {
             enrichBatch(batch);
         }
 
+        extractedBookAdminService.linkUnverifiedBooks();
         log.info("Enriquecimiento completado");
     }
 
@@ -123,8 +132,23 @@ public class BookEnrichmentService {
             enrichWithOLFallback(entity);
         }
 
+        // Crear o recuperar entidades Author a partir del campo authorCorrected ya establecido
+        String resolvedAuthor = entity.getAuthorCorrected();
+        if (resolvedAuthor != null && !resolvedAuthor.isBlank()) {
+            List<AuthorEntity> authors = AuthorNameParser.parse(resolvedAuthor).stream()
+                    .map(this::findOrCreateAuthor)
+                    .toList();
+            entity.getAuthors().addAll(authors);
+        }
+
         entity.setEnriched(true);
         entity.setEnrichedAt(Instant.now());
+    }
+
+    private AuthorEntity findOrCreateAuthor(String name) {
+        String normalized = TitleCaseNormalizer.normalize(name);
+        return authorRepository.findByNameIgnoreCase(normalized)
+                .orElseGet(() -> authorRepository.save(new AuthorEntity(normalized)));
     }
 
     private void enrichWithSonnetTitle(ExtractedBookEntity entity, String sonnetTitleEs) {
@@ -192,6 +216,10 @@ public class BookEnrichmentService {
                 if (author != null) {
                     entity.setAuthor(author);
                     entity.setAuthorCorrected(author);
+                    List<AuthorEntity> authorEntities = AuthorNameParser.parse(author).stream()
+                            .map(this::findOrCreateAuthor)
+                            .toList();
+                    entity.getAuthors().addAll(authorEntities);
                     toSave.add(entity);
                     recovered++;
                 }

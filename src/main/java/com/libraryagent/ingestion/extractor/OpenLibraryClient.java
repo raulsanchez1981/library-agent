@@ -16,4 +16,10 @@ public interface OpenLibraryClient {
      * Devuelve el título en español que OL tiene catalogado (puede diferir del buscado).
      */
     Optional<SpanishEdition> findBySpanishTitle(String spanishTitle);
+
+    /**
+     * Busca la URL de portada en alta resolución para un título dado.
+     * Intenta primero con el título en español, luego con el original.
+     */
+    Optional<String> findCoverUrl(String title, String originalTitle);
 }
