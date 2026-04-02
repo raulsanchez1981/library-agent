@@ -82,12 +82,12 @@ class CasaDelLibroScraperServiceTest {
     }
 
     @Test
-    void shouldExtractCoverUrlFromJsonLdContentUrl() {
+    void shouldExtractCoverUrlUpgradedToS5Quality() {
         // When
         CdlEnrichmentResultDto result = service.scrape("https://www.casadellibro.com/libro");
 
-        // Then — prefiere JSON-LD image.contentUrl (t5) sobre og:image (t1)
-        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/t5/87/9788413143187.jpg");
+        // Then — extrae de JSON-LD (t5) y lo promueve a s5 (mayor resolución)
+        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/s5/87/9788413143187.jpg");
     }
 
     @Test
@@ -127,7 +127,7 @@ class CasaDelLibroScraperServiceTest {
     }
 
     @Test
-    void shouldFallbackToOgImageWhenJsonLdHasNoImage() {
+    void shouldFallbackToOgImageAndUpgradeQualityWhenJsonLdHasNoImage() {
         // Given — JSON-LD sin campo image
         CasaDelLibroScraperServiceImpl noImageService = new CasaDelLibroScraperServiceImpl(new ObjectMapper()) {
             @Override
@@ -145,8 +145,8 @@ class CasaDelLibroScraperServiceTest {
         // When
         CdlEnrichmentResultDto result = noImageService.scrape("https://www.casadellibro.com/libro");
 
-        // Then
-        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/t1/87/fallback.jpg");
+        // Then — t1 promovido a s5
+        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/s5/87/fallback.jpg");
     }
 
     @Test

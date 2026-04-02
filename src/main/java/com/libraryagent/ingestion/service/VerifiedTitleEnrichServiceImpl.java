@@ -31,7 +31,7 @@ public class VerifiedTitleEnrichServiceImpl implements VerifiedTitleEnrichServic
     @Override
     @Transactional
     public VerifiedTitleDetailDto enrichFromCdl(UUID id, String casaDelLibroUrl) {
-        VerifiedTitleEntity vt = verifiedTitleRepository.findById(id)
+        VerifiedTitleEntity vt = verifiedTitleRepository.findByIdWithGenres(id)
                 .orElseThrow(() -> new EntityNotFoundException("Título verificado no encontrado: " + id));
 
         CdlEnrichmentResultDto result = scraperService.scrape(casaDelLibroUrl);

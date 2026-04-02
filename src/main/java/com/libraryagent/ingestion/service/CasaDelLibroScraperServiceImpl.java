@@ -84,17 +84,27 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
     }
 
     private String extractCoverUrl(JsonNode bookNode, Document document) {
-        // JSON-LD: image.contentUrl contiene la URL en calidad t5 (mayor que og:image t1)
+        // JSON-LD: image.contentUrl contiene t5; lo promovemos a s5 (mayor resolución)
         if (bookNode != null) {
             String contentUrl = bookNode.path("image").path("contentUrl").asText();
             if (!contentUrl.isBlank()) {
-                return contentUrl;
+                return upgradeImageQuality(contentUrl);
             }
         }
 
-        // Fallback: og:image (thumbnail t1)
+        // Fallback: og:image (t1), también promovido a s5
         String ogImage = document.select("meta[property=og:image]").attr("content");
-        return ogImage.isBlank() ? null : ogImage;
+        return ogImage.isBlank() ? null : upgradeImageQuality(ogImage);
+    }
+
+    /**
+     * CDL usa /a/l/{quality}/ en sus URLs de imagen.
+     * t1 y t5 son miniaturas; s5 es la versión estándar de mayor resolución.
+     */
+    private String upgradeImageQuality(String url) {
+        if (url == null) return null;
+        return url.replace("/a/l/t1/", "/a/l/s5/")
+                  .replace("/a/l/t5/", "/a/l/s5/");
     }
 
     private String extractSynopsis(Document document) {

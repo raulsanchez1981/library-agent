@@ -56,7 +56,7 @@ class VerifiedTitleEnrichServiceTest {
                 List.of("Fantasía")
         );
 
-        when(verifiedTitleRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(verifiedTitleRepository.findByIdWithGenres(id)).thenReturn(Optional.of(entity));
         when(scraperService.scrape(any())).thenReturn(scraped);
         when(genreService.findOrCreate("Fantasía")).thenReturn(fantasia);
         when(verifiedTitleRepository.save(entity)).thenReturn(entity);
@@ -84,7 +84,7 @@ class VerifiedTitleEnrichServiceTest {
                 null, null, null, List.of("Fantasía")
         );
 
-        when(verifiedTitleRepository.findById(id)).thenReturn(Optional.of(entity));
+        when(verifiedTitleRepository.findByIdWithGenres(id)).thenReturn(Optional.of(entity));
         when(scraperService.scrape(any())).thenReturn(scraped);
         when(verifiedTitleRepository.save(entity)).thenReturn(entity);
 
@@ -100,7 +100,7 @@ class VerifiedTitleEnrichServiceTest {
     void shouldThrowEntityNotFoundExceptionWhenIdDoesNotExist() {
         // Given
         UUID id = UUID.randomUUID();
-        when(verifiedTitleRepository.findById(id)).thenReturn(Optional.empty());
+        when(verifiedTitleRepository.findByIdWithGenres(id)).thenReturn(Optional.empty());
 
         // When / Then
         assertThatThrownBy(() -> service.enrichFromCdl(id, "https://www.casadellibro.com/libro"))

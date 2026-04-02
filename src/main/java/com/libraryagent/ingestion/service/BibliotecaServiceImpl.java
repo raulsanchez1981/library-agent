@@ -47,7 +47,7 @@ public class BibliotecaServiceImpl implements BibliotecaService {
     @Override
     @Transactional(readOnly = true)
     public VerifiedTitleDetailDto findById(UUID id) {
-        return verifiedTitleRepository.findById(id)
+        return verifiedTitleRepository.findByIdWithGenres(id)
                 .map(VerifiedTitleDetailDto::fromEntity)
                 .orElseThrow(() -> new EntityNotFoundException("Título verificado no encontrado: " + id));
     }
