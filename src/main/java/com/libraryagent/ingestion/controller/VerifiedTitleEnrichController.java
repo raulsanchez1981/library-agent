@@ -1,7 +1,9 @@
 package com.libraryagent.ingestion.controller;
 
+import com.libraryagent.ingestion.dto.CdlEnrichmentResultDto;
 import com.libraryagent.ingestion.dto.EnrichCdlRequest;
 import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
+import com.libraryagent.ingestion.service.CasaDelLibroScraperService;
 import com.libraryagent.ingestion.service.VerifiedTitleEnrichService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +18,13 @@ import java.util.UUID;
 public class VerifiedTitleEnrichController {
 
     private final VerifiedTitleEnrichService enrichService;
+    private final CasaDelLibroScraperService scraperService;
 
-    public VerifiedTitleEnrichController(VerifiedTitleEnrichService enrichService) {
+    public VerifiedTitleEnrichController(
+            VerifiedTitleEnrichService enrichService,
+            CasaDelLibroScraperService scraperService) {
         this.enrichService = enrichService;
+        this.scraperService = scraperService;
     }
 
     @PostMapping("/{id}/enrich-cdl")
@@ -28,5 +34,13 @@ public class VerifiedTitleEnrichController {
 
         VerifiedTitleDetailDto result = enrichService.enrichFromCdl(id, request.casaDelLibroUrl());
         return ResponseEntity.ok(result);
+    }
+
+    /** Preview del scraper sin persistir — útil para diagnosticar qué extrae CDL */
+    @PostMapping("/scrape-preview")
+    public ResponseEntity<CdlEnrichmentResultDto> scrapePreview(
+            @Valid @RequestBody EnrichCdlRequest request) {
+
+        return ResponseEntity.ok(scraperService.scrape(request.casaDelLibroUrl()));
     }
 }

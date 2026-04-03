@@ -86,8 +86,8 @@ class CasaDelLibroScraperServiceTest {
         // When
         CdlEnrichmentResultDto result = service.scrape("https://www.casadellibro.com/libro");
 
-        // Then — extrae de JSON-LD (t5) y lo promueve a s5 (mayor resolución)
-        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/s5/87/9788413143187.jpg");
+        // Then — extrae de JSON-LD (t5) y lo promueve a s5 .webp (mayor resolución)
+        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/s5/87/9788413143187.webp");
     }
 
     @Test
@@ -145,8 +145,8 @@ class CasaDelLibroScraperServiceTest {
         // When
         CdlEnrichmentResultDto result = noImageService.scrape("https://www.casadellibro.com/libro");
 
-        // Then — t1 promovido a s5
-        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/s5/87/fallback.jpg");
+        // Then — t1 promovido a s5 .webp
+        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/s5/87/fallback.webp");
     }
 
     @Test

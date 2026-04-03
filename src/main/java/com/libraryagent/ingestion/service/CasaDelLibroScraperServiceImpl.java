@@ -99,12 +99,17 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
 
     /**
      * CDL usa /a/l/{quality}/ en sus URLs de imagen.
-     * t1 y t5 son miniaturas; s5 es la versión estándar de mayor resolución.
+     * t1/t5 son miniaturas JPEG; s5 es la versión estándar en WebP (mayor resolución).
      */
     private String upgradeImageQuality(String url) {
         if (url == null) return null;
-        return url.replace("/a/l/t1/", "/a/l/s5/")
-                  .replace("/a/l/t5/", "/a/l/s5/");
+        String upgraded = url.replace("/a/l/t1/", "/a/l/s5/")
+                             .replace("/a/l/t5/", "/a/l/s5/");
+        // s5 solo existe en .webp, no en .jpg
+        if (upgraded.contains("/a/l/s5/") && upgraded.endsWith(".jpg")) {
+            upgraded = upgraded.substring(0, upgraded.length() - 4) + ".webp";
+        }
+        return upgraded;
     }
 
     private String extractSynopsis(Document document) {

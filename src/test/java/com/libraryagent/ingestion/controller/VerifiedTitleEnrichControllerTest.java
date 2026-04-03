@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.config.security.SecurityConfig;
 import com.libraryagent.ingestion.dto.GenreDto;
 import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
+import com.libraryagent.ingestion.service.CasaDelLibroScraperService;
 import com.libraryagent.ingestion.service.VerifiedTitleEnrichService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +38,9 @@ class VerifiedTitleEnrichControllerTest {
 
     @MockitoBean
     JwtDecoder jwtDecoder;
+
+    @MockitoBean
+    CasaDelLibroScraperService scraperService;
 
     @MockitoBean
     VerifiedTitleEnrichService enrichService;
