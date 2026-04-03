@@ -78,7 +78,16 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
 
     private JsonNode findByType(List<JsonNode> blocks, String type) {
         return blocks.stream()
-                .filter(node -> type.equals(node.path("@type").asText()))
+                .filter(node -> {
+                    JsonNode typeNode = node.path("@type");
+                    if (typeNode.isArray()) {
+                        for (JsonNode t : typeNode) {
+                            if (type.equals(t.asText())) return true;
+                        }
+                        return false;
+                    }
+                    return type.equals(typeNode.asText());
+                })
                 .findFirst()
                 .orElse(null);
     }

@@ -170,6 +170,54 @@ class CasaDelLibroScraperServiceTest {
     }
 
     @Test
+    void shouldExtractDataWhenAtTypeIsArray() {
+        // Given — JSON-LD con @type como array (["Book"]) en vez de string
+        CasaDelLibroScraperServiceImpl arrayTypeService = new CasaDelLibroScraperServiceImpl(new ObjectMapper()) {
+            @Override
+            protected Document fetchDocument(String url) {
+                return Jsoup.parse("""
+                        <html>
+                        <head>
+                          <script type="application/ld+json">
+                          {
+                            "@type": ["Book"],
+                            "name": "Test Book",
+                            "image": { "contentUrl": "https://imagessl7.casadellibro.com/a/l/t5/87/9788413143187.jpg" },
+                            "publisher": { "name": "Editorial Test" },
+                            "workExample": [{ "isbn": "1234567890", "numberOfPages": 300,
+                              "datePublished": "2023-01-01", "bookFormat": "https://schema.org/Paperback",
+                              "inLanguage": "es" }]
+                          }
+                          </script>
+                          <script type="application/ld+json">
+                          {
+                            "@type": ["BreadcrumbList"],
+                            "itemListElement": [
+                              { "position": 0, "name": "Home" },
+                              { "position": 1, "name": "Libros" },
+                              { "position": 2, "name": "Fantástica" }
+                            ]
+                          }
+                          </script>
+                        </head>
+                        <body>
+                          <div class="resumen-content svelte-g9q8l2">Sinopsis de prueba.</div>
+                        </body>
+                        </html>
+                        """, url);
+            }
+        };
+
+        // When
+        CdlEnrichmentResultDto result = arrayTypeService.scrape("https://www.casadellibro.com/libro");
+
+        // Then — @type array debe funcionar igual que @type string
+        assertThat(result.coverUrl()).isEqualTo("https://imagessl7.casadellibro.com/a/l/s5/87/9788413143187.webp");
+        assertThat(result.genres()).containsExactly("Fantástica");
+        assertThat(result.technicalSheet()).contains("Editorial Test");
+    }
+
+    @Test
     void shouldThrowRuntimeExceptionWhenUrlIsBlank() {
         assertThatThrownBy(() -> service.scrape(""))
                 .isInstanceOf(RuntimeException.class)
