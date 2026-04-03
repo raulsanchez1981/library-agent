@@ -1,19 +1,22 @@
 package com.libraryagent.ingestion.service;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.anthropic.client.AnthropicClient;
+import com.anthropic.client.okhttp.AnthropicOkHttpClient;
+import com.anthropic.models.messages.MessageCreateParams;
+import com.anthropic.models.messages.Model;
+import com.anthropic.models.messages.TextBlock;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.dto.CdlEnrichmentResultDto;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperService {
@@ -23,10 +26,62 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
-    private final ObjectMapper objectMapper;
+    private static final String EXTRACT_PROMPT = """
+            Analiza estos datos extraídos de una página de Casa del Libro y devuelve \
+            SOLO un JSON con esta estructura exacta (sin markdown, sin explicaciones):
+            {
+              "coverUrl": "URL completa de la imagen de portada",
+              "synopsis": "sinopsis completa del libro",
+              "genres": ["género1", "género2"],
+              "technicalSheet": {
+                "Editorial": "...",
+                "ISBN": "...",
+                "Número de páginas": "...",
+                "Año de edición": "YYYY",
+                "Encuadernación": "...",
+                "Idioma": "...",
+                "Dimensiones": "...",
+                "Peso": "..."
+              }
+            }
 
-    public CasaDelLibroScraperServiceImpl(ObjectMapper objectMapper) {
+            Reglas:
+            - coverUrl: usa image.contentUrl del JSON-LD Book si existe; si la URL contiene /t1/ o \
+            /t5/ en el path, sustitúyelo por /s5/ y cambia la extensión a .webp; \
+            si no hay JSON-LD usa og:image aplicando la misma transformación
+            - synopsis: usa el texto de .resumen-content si está disponible; si no, \
+            usa description del JSON-LD Book
+            - genres: extrae del itemListElement del BreadcrumbList JSON-LD, \
+            omite los elementos con name "Home" y "Libros"
+            - technicalSheet: extrae de JSON-LD (workExample[0] para isbn/numberOfPages/\
+            datePublished/bookFormat/inLanguage; publisher.name para Editorial; \
+            size para Dimensiones; materialExtent para Peso); \
+            para Año de edición usa solo los 4 primeros dígitos de datePublished; \
+            para Encuadernación extrae la parte final de la URL de bookFormat
+            - Omite de technicalSheet los campos sin valor
+            - Si no hay datos para un campo raíz, usa null para strings, [] para arrays
+            - Responde SOLO con el JSON
+
+            Datos extraídos de la página:
+
+            === JSON-LD ===
+            %s
+
+            === Texto de sinopsis (.resumen-content) ===
+            %s
+
+            === og:image ===
+            %s
+            """;
+
+    private final ObjectMapper objectMapper;
+    private final AnthropicClient anthropicClient;
+
+    public CasaDelLibroScraperServiceImpl(
+            ObjectMapper objectMapper,
+            @Value("${anthropic.api-key}") String apiKey) {
         this.objectMapper = objectMapper;
+        this.anthropicClient = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
     }
 
     @Override
@@ -42,18 +97,17 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
             throw new RuntimeException("Error al conectar con Casa del Libro: " + e.getMessage(), e);
         }
 
-        // Parsear todos los bloques JSON-LD presentes en el HTML estático
-        List<JsonNode> ldJsonBlocks = parseLdJsonBlocks(document);
+        String ldJson = document.select("script[type=application/ld+json]")
+                .stream()
+                .map(el -> el.data())
+                .collect(Collectors.joining("\n---\n"));
 
-        JsonNode bookNode = findByType(ldJsonBlocks, "Book");
-        JsonNode breadcrumbNode = findByType(ldJsonBlocks, "BreadcrumbList");
+        String synopsis = document.select(".resumen-content").text();
+        String ogImage = document.select("meta[property=og:image]").attr("content");
 
-        String coverUrl = extractCoverUrl(bookNode, document);
-        String synopsis = extractSynopsis(document);
-        List<String> genres = extractGenres(breadcrumbNode);
-        String technicalSheet = extractTechnicalSheet(bookNode);
-
-        return new CdlEnrichmentResultDto(coverUrl, synopsis, technicalSheet, genres);
+        String prompt = EXTRACT_PROMPT.formatted(ldJson, synopsis, ogImage);
+        String json = callClaude(prompt);
+        return parseResponse(json);
     }
 
     // Extraído para permitir override en tests
@@ -64,133 +118,54 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
                 .get();
     }
 
-    private List<JsonNode> parseLdJsonBlocks(Document document) {
-        List<JsonNode> blocks = new ArrayList<>();
-        for (Element script : document.select("script[type=application/ld+json]")) {
-            try {
-                blocks.add(objectMapper.readTree(script.data()));
-            } catch (JsonProcessingException ignored) {
-                // bloque JSON malformado — se ignora
-            }
-        }
-        return blocks;
-    }
+    // Extraído para permitir override en tests
+    protected String callClaude(String prompt) {
+        MessageCreateParams params = MessageCreateParams.builder()
+                .model(Model.CLAUDE_HAIKU_4_5_20251001)
+                .maxTokens(1024L)
+                .addUserMessage(prompt)
+                .build();
 
-    private JsonNode findByType(List<JsonNode> blocks, String type) {
-        return blocks.stream()
-                .filter(node -> {
-                    JsonNode typeNode = node.path("@type");
-                    if (typeNode.isArray()) {
-                        for (JsonNode t : typeNode) {
-                            if (type.equals(t.asText())) return true;
-                        }
-                        return false;
-                    }
-                    return type.equals(typeNode.asText());
-                })
+        return anthropicClient.messages().create(params)
+                .content().stream()
+                .flatMap(block -> block.text().stream())
+                .map(TextBlock::text)
                 .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> new RuntimeException("Claude no devolvió respuesta"));
     }
 
-    private String extractCoverUrl(JsonNode bookNode, Document document) {
-        // JSON-LD: image.contentUrl contiene t5; lo promovemos a s5 (mayor resolución)
-        if (bookNode != null) {
-            String contentUrl = bookNode.path("image").path("contentUrl").asText();
-            if (!contentUrl.isBlank()) {
-                return upgradeImageQuality(contentUrl);
+    private CdlEnrichmentResultDto parseResponse(String json) {
+        try {
+            JsonNode root = objectMapper.readTree(json);
+
+            String coverUrl = nullableText(root, "coverUrl");
+            String synopsisText = nullableText(root, "synopsis");
+
+            JsonNode sheetNode = root.path("technicalSheet");
+            String technicalSheet = null;
+            if (!sheetNode.isMissingNode() && !sheetNode.isNull() && sheetNode.size() > 0) {
+                technicalSheet = objectMapper.writeValueAsString(sheetNode);
             }
-        }
 
-        // Fallback: og:image (t1), también promovido a s5
-        String ogImage = document.select("meta[property=og:image]").attr("content");
-        return ogImage.isBlank() ? null : upgradeImageQuality(ogImage);
-    }
-
-    /**
-     * CDL usa /a/l/{quality}/ en sus URLs de imagen.
-     * t1/t5 son miniaturas JPEG; s5 es la versión estándar en WebP (mayor resolución).
-     */
-    private String upgradeImageQuality(String url) {
-        if (url == null) return null;
-        String upgraded = url.replace("/a/l/t1/", "/a/l/s5/")
-                             .replace("/a/l/t5/", "/a/l/s5/");
-        // s5 solo existe en .webp, no en .jpg
-        if (upgraded.contains("/a/l/s5/") && upgraded.endsWith(".jpg")) {
-            upgraded = upgraded.substring(0, upgraded.length() - 4) + ".webp";
-        }
-        return upgraded;
-    }
-
-    private String extractSynopsis(Document document) {
-        // .resumen-content está en el HTML estático (SSR de Svelte)
-        String text = document.select(".resumen-content").text();
-        return text.isBlank() ? null : text;
-    }
-
-    private List<String> extractGenres(JsonNode breadcrumbNode) {
-        // Los géneros están en el BreadcrumbList a partir de la posición 2
-        // (0=Home, 1=Libros son demasiado genéricos)
-        if (breadcrumbNode == null) return List.of();
-
-        List<String> genres = new ArrayList<>();
-        JsonNode items = breadcrumbNode.path("itemListElement");
-        for (JsonNode item : items) {
-            int position = item.path("position").asInt(-1);
-            if (position >= 2) {
-                String name = item.path("name").asText();
-                if (!name.isBlank()) {
-                    genres.add(name);
+            List<String> genres = new ArrayList<>();
+            JsonNode genresNode = root.path("genres");
+            if (genresNode.isArray()) {
+                for (JsonNode g : genresNode) {
+                    String name = g.asText();
+                    if (!name.isBlank()) genres.add(name);
                 }
             }
+
+            return new CdlEnrichmentResultDto(coverUrl, synopsisText, technicalSheet, genres);
+        } catch (Exception e) {
+            throw new RuntimeException("Error al parsear respuesta de Claude: " + e.getMessage(), e);
         }
-        return genres;
     }
 
-    private String extractTechnicalSheet(JsonNode bookNode) {
-        if (bookNode == null) return null;
-
-        Map<String, String> sheet = new LinkedHashMap<>();
-
-        // Datos del publisher
-        String editorial = bookNode.path("publisher").path("name").asText();
-        if (!editorial.isBlank()) sheet.put("Editorial", editorial);
-
-        // Datos del workExample (primer ejemplar con ISBN, páginas, fecha, formato)
-        JsonNode examples = bookNode.path("workExample");
-        JsonNode example = examples.isArray() && examples.size() > 0 ? examples.get(0) : examples;
-
-        String isbn = example.path("isbn").asText();
-        if (!isbn.isBlank()) sheet.put("ISBN", isbn);
-
-        String pages = example.path("numberOfPages").asText();
-        if (!pages.isBlank() && !"0".equals(pages)) sheet.put("Número de páginas", pages);
-
-        String date = example.path("datePublished").asText();
-        if (!date.isBlank()) sheet.put("Año de edición", date.length() >= 4 ? date.substring(0, 4) : date);
-
-        String format = example.path("bookFormat").asText();
-        if (!format.isBlank()) {
-            // https://schema.org/Paperback → "Paperback"
-            String formatName = format.contains("/") ? format.substring(format.lastIndexOf('/') + 1) : format;
-            sheet.put("Encuadernación", formatName);
-        }
-
-        String language = example.path("inLanguage").asText();
-        if (!language.isBlank()) sheet.put("Idioma", language);
-
-        // Dimensiones y peso a nivel de libro
-        String size = bookNode.path("size").asText();
-        if (!size.isBlank()) sheet.put("Dimensiones", size);
-
-        String weight = bookNode.path("materialExtent").asText();
-        if (!weight.isBlank()) sheet.put("Peso", weight);
-
-        if (sheet.isEmpty()) return null;
-
-        try {
-            return objectMapper.writeValueAsString(sheet);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Error al serializar la ficha técnica a JSON", e);
-        }
+    private String nullableText(JsonNode node, String field) {
+        JsonNode child = node.path(field);
+        if (child.isMissingNode() || child.isNull()) return null;
+        String text = child.asText();
+        return text.isBlank() ? null : text;
     }
 }
