@@ -28,7 +28,8 @@ public record ExtractedBookAdminDto(
         UUID verifiedTitleId,
         String verifiedTitleName,
         String coverUrl,
-        String synopsis
+        String synopsis,
+        boolean cdlEnriched
 ) {
 
     public static ExtractedBookAdminDto fromEntity(ExtractedBookEntity e) {
@@ -40,6 +41,7 @@ public record ExtractedBookAdminDto(
         String verifiedTitleName = vt != null ? vt.getName() : null;
         String coverUrl = vt != null ? vt.getCoverUrl() : null;
         String synopsis = vt != null ? vt.getSynopsis() : null;
+        boolean cdlEnriched = vt != null && vt.getCasaDelLibroUrl() != null;
         return new ExtractedBookAdminDto(
                 e.getId(),
                 e.getTitle(),
@@ -58,7 +60,8 @@ public record ExtractedBookAdminDto(
                 verifiedTitleId,
                 verifiedTitleName,
                 coverUrl,
-                synopsis
+                synopsis,
+                cdlEnriched
         );
     }
 }

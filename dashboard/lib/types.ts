@@ -22,6 +22,7 @@ export interface ExtractedBookAdminDto {
   createdAt: string;
   coverUrl: string | null;
   synopsis: string | null;
+  cdlEnriched: boolean;
 }
 
 export interface UpdateExtractedBookRequest {

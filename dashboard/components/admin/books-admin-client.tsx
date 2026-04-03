@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { updateAdminBook } from "@/app/actions/admin-books";
 import { enrichFromCdl } from "@/app/actions/biblioteca";
@@ -131,6 +132,7 @@ export default function BooksAdminClient({
         <table className="w-full text-sm">
           <thead className="bg-zinc-50 border-b border-zinc-200">
             <tr>
+              <th className="w-10 px-2 py-3" />
               <SortableHeader
                 label="Título original"
                 field="title"
@@ -173,7 +175,7 @@ export default function BooksAdminClient({
           <tbody className="divide-y divide-zinc-100">
             {data.content.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-zinc-400">
+                <td colSpan={8} className="px-4 py-8 text-center text-zinc-400">
                   No hay libros con los filtros seleccionados
                 </td>
               </tr>
@@ -287,6 +289,30 @@ function BookRow({
 
   return (
     <tr className="hover:bg-zinc-50 transition-colors">
+      <td className="px-2 py-2 w-10">
+        <div className="relative w-8 h-12 flex-shrink-0">
+          {book.coverUrl ? (
+            <div className="relative w-full h-full rounded overflow-hidden bg-zinc-100">
+              <Image
+                src={book.coverUrl}
+                alt={book.title}
+                fill
+                className="object-cover"
+                sizes="32px"
+              />
+            </div>
+          ) : (
+            <div className="w-full h-full rounded bg-zinc-100" />
+          )}
+          {book.cdlEnriched && (
+            <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 ring-1 ring-white">
+              <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </span>
+          )}
+        </div>
+      </td>
       <td className="px-4 py-3 text-zinc-800 max-w-xs">
         <p className="font-medium truncate" title={book.title}>
           {book.title}
