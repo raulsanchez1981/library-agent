@@ -106,7 +106,7 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
         String ogImage = document.select("meta[property=og:image]").attr("content");
 
         String prompt = EXTRACT_PROMPT.formatted(ldJson, synopsis, ogImage);
-        String json = callClaude(prompt);
+        String json = stripMarkdown(callClaude(prompt));
         return parseResponse(json);
     }
 
@@ -132,6 +132,18 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
                 .map(TextBlock::text)
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Claude no devolvió respuesta"));
+    }
+
+    private String stripMarkdown(String response) {
+        String trimmed = response.trim();
+        if (trimmed.startsWith("```")) {
+            int firstNewline = trimmed.indexOf('\n');
+            int lastFence = trimmed.lastIndexOf("```");
+            if (firstNewline > 0 && lastFence > firstNewline) {
+                return trimmed.substring(firstNewline + 1, lastFence).trim();
+            }
+        }
+        return trimmed;
     }
 
     private CdlEnrichmentResultDto parseResponse(String json) {
