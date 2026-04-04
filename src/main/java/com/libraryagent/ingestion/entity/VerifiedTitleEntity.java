@@ -1,5 +1,6 @@
 package com.libraryagent.ingestion.entity;
 
+import com.libraryagent.ingestion.service.CdlAutoSearchStatus;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -41,6 +42,22 @@ public class VerifiedTitleEntity {
 
     @Column(name = "technical_sheet", columnDefinition = "TEXT")
     private String technicalSheet;
+
+    @Column(name = "cdl_auto_search_status", length = 20)
+    @Enumerated(EnumType.STRING)
+    private CdlAutoSearchStatus cdlAutoSearchStatus;
+
+    @Column(name = "publisher", length = 256)
+    private String publisher;
+
+    @Column(name = "published_date", length = 32)
+    private String publishedDate;
+
+    @Column(name = "page_count")
+    private Integer pageCount;
+
+    @Column(name = "isbn", length = 20)
+    private String isbn;
 
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(

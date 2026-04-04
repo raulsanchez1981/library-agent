@@ -5,6 +5,7 @@ import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.extractor.EnrichmentSource;
 import com.libraryagent.ingestion.model.ExtractedBookEntity;
+import com.libraryagent.ingestion.service.CdlAutoSearchStatus;
 
 import java.time.Instant;
 import java.util.List;
@@ -29,7 +30,8 @@ public record ExtractedBookAdminDto(
         String verifiedTitleName,
         String coverUrl,
         String synopsis,
-        boolean cdlEnriched
+        boolean cdlEnriched,
+        CdlAutoSearchStatus cdlAutoSearchStatus
 ) {
 
     public static ExtractedBookAdminDto fromEntity(ExtractedBookEntity e) {
@@ -42,6 +44,7 @@ public record ExtractedBookAdminDto(
         String coverUrl = vt != null ? vt.getCoverUrl() : null;
         String synopsis = vt != null ? vt.getSynopsis() : null;
         boolean cdlEnriched = vt != null && vt.getCasaDelLibroUrl() != null;
+        CdlAutoSearchStatus cdlAutoSearchStatus = vt != null ? vt.getCdlAutoSearchStatus() : null;
         return new ExtractedBookAdminDto(
                 e.getId(),
                 e.getTitle(),
@@ -61,7 +64,8 @@ public record ExtractedBookAdminDto(
                 verifiedTitleName,
                 coverUrl,
                 synopsis,
-                cdlEnriched
+                cdlEnriched,
+                cdlAutoSearchStatus
         );
     }
 }

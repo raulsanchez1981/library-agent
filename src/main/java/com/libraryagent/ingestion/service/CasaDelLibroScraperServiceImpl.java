@@ -10,6 +10,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.dto.CdlEnrichmentResultDto;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperService {
+
+    private static final Logger log = LoggerFactory.getLogger(CasaDelLibroScraperServiceImpl.class);
 
     private static final int TIMEOUT_MS = 10_000;
     private static final String USER_AGENT =
@@ -122,7 +126,7 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
     protected String callClaude(String prompt) {
         MessageCreateParams params = MessageCreateParams.builder()
                 .model(Model.CLAUDE_HAIKU_4_5_20251001)
-                .maxTokens(1024L)
+                .maxTokens(4096L)
                 .addUserMessage(prompt)
                 .build();
 
@@ -135,14 +139,23 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
     }
 
     private String stripMarkdown(String response) {
+        log.debug("Respuesta cruda de Claude: {}", response);
         String trimmed = response.trim();
+        // Eliminar bloque de código markdown triple-backtick si existe
         if (trimmed.startsWith("```")) {
             int firstNewline = trimmed.indexOf('\n');
             int lastFence = trimmed.lastIndexOf("```");
             if (firstNewline > 0 && lastFence > firstNewline) {
-                return trimmed.substring(firstNewline + 1, lastFence).trim();
+                trimmed = trimmed.substring(firstNewline + 1, lastFence).trim();
             }
         }
+        // Extraer entre el primer '{' y el último '}' para ignorar texto extra
+        int start = trimmed.indexOf('{');
+        int end = trimmed.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return trimmed.substring(start, end + 1);
+        }
+        log.warn("Claude no devolvió JSON parseable. Respuesta: {}", response);
         return trimmed;
     }
 
@@ -170,7 +183,7 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
 
             return new CdlEnrichmentResultDto(coverUrl, synopsisText, technicalSheet, genres);
         } catch (Exception e) {
-            throw new RuntimeException("Error al parsear respuesta de Claude: " + e.getMessage(), e);
+            throw new RuntimeException("Error al parsear respuesta de Claude: " + e.getMessage() + " | JSON: " + json, e);
         }
     }
 

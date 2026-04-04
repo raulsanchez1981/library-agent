@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { updateAdminBook } from "@/app/actions/admin-books";
-import { enrichFromCdl } from "@/app/actions/biblioteca";
+import { cdlAutoSearchAll, enrichFromCdl, reEnrichGoogleBooks } from "@/app/actions/biblioteca";
 import type {
   Confidence,
   ExtractedBookAdminDto,
@@ -42,7 +42,77 @@ export default function BooksAdminClient({
 }: Props) {
   const router = useRouter();
   const [editingBook, setEditingBook] = useState<ExtractedBookAdminDto | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
+  const [isSearching, startSearchTransition] = useTransition();
+  const [isReEnriching, startReEnrichTransition] = useTransition();
+  const [isPolling, setIsPolling] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Libros de la página actual sin estado CDL — si llegan a 0 durante el polling, paramos
+  const pendingInPage = data.content.filter(
+    (b) => b.verifiedTitleId && !b.cdlEnriched && b.cdlAutoSearchStatus === null
+  ).length;
+
+  useEffect(() => {
+    if (!isPolling) return;
+
+    // Para si ya no quedan pendientes en la página visible
+    if (pendingInPage === 0) {
+      stopPolling();
+      return;
+    }
+
+    const MAX_TICKS = 100; // 100 × 3s = 5 minutos
+    let ticks = 0;
+
+    pollingRef.current = setInterval(() => {
+      ticks++;
+      router.refresh();
+      if (ticks >= MAX_TICKS) stopPolling();
+    }, 3000);
+
+    return () => clearInterval(pollingRef.current!);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPolling]);
+
+  // Detener polling cuando la página refresca y ya no hay pendientes
+  useEffect(() => {
+    if (isPolling && pendingInPage === 0) stopPolling();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingInPage]);
+
+  function stopPolling() {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    pollingRef.current = null;
+    setIsPolling(false);
+    setToast(null);
+  }
+
+  function handleCdlAutoSearch() {
+    startSearchTransition(async () => {
+      try {
+        await cdlAutoSearchAll();
+        setToast("Búsqueda en curso…");
+        setIsPolling(true);
+      } catch {
+        setToast("Error al lanzar la búsqueda");
+        setTimeout(() => setToast(null), 4000);
+      }
+    });
+  }
+
+  function handleReEnrichGoogleBooks() {
+    startReEnrichTransition(async () => {
+      try {
+        await reEnrichGoogleBooks();
+        setToast("Re-enriquecimiento en curso…");
+        setIsPolling(true);
+      } catch {
+        setToast("Error al lanzar el re-enriquecimiento");
+        setTimeout(() => setToast(null), 4000);
+      }
+    });
+  }
   function buildHref(overrides: Record<string, string | undefined>) {
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
@@ -125,7 +195,39 @@ export default function BooksAdminClient({
             Limpiar filtros
           </a>
         )}
+
+        <button
+          onClick={handleCdlAutoSearch}
+          disabled={isSearching}
+          title="Buscar en Google Books los títulos verificados sin estado"
+          className="ml-auto flex items-center gap-1.5 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800 hover:bg-amber-100 disabled:opacity-50 transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
+          </svg>
+          {isSearching ? "Enviando…" : "Buscar (pendientes)"}
+        </button>
+        <button
+          onClick={handleReEnrichGoogleBooks}
+          disabled={isReEnriching}
+          title="Re-enriquece todos los libros AUTO desde Google Books (corrige portadas y datos incorrectos)"
+          className="flex items-center gap-1.5 rounded-lg border border-violet-300 bg-violet-50 px-3 py-2 text-sm text-violet-800 hover:bg-violet-100 disabled:opacity-50 transition-colors"
+        >
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {isReEnriching ? "Enviando…" : "Re-enriquecer AUTO"}
+        </button>
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 rounded-lg bg-zinc-900 px-4 py-3 text-sm text-white shadow-lg">
+          {toast}
+        </div>
+      )}
 
       {/* Tabla */}
       <div className="overflow-x-auto rounded-xl border border-zinc-200 bg-white">
@@ -304,13 +406,7 @@ function BookRow({
           ) : (
             <div className="w-full h-full rounded bg-zinc-100" />
           )}
-          {book.cdlEnriched && (
-            <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 ring-1 ring-white">
-              <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
-              </svg>
-            </span>
-          )}
+          <CdlStatusBadge cdlEnriched={book.cdlEnriched} cdlAutoSearchStatus={book.cdlAutoSearchStatus} />
         </div>
       </td>
       <td className="px-4 py-3 text-zinc-800 max-w-xs">
@@ -391,6 +487,51 @@ function BookRow({
       </td>
     </tr>
   );
+}
+
+function CdlStatusBadge({
+  cdlAutoSearchStatus,
+}: {
+  cdlEnriched: boolean;
+  cdlAutoSearchStatus: ExtractedBookAdminDto["cdlAutoSearchStatus"];
+}) {
+  if (cdlAutoSearchStatus === "CONFIRMED") {
+    return (
+      <span
+        title="Verificado"
+        className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 ring-1 ring-white"
+      >
+        <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  if (cdlAutoSearchStatus === "AUTO") {
+    return (
+      <span
+        title="Enriquecido automáticamente — pendiente de verificación"
+        className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-400 ring-1 ring-white"
+      >
+        <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  if (cdlAutoSearchStatus === "NOT_FOUND") {
+    return (
+      <span
+        title="No se encontraron datos automáticamente"
+        className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-zinc-400 ring-1 ring-white"
+      >
+        <svg className="w-2 h-2 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  return null;
 }
 
 function ConfidenceBadge({ confidence }: { confidence: Confidence | null }) {

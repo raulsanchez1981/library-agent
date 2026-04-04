@@ -39,7 +39,7 @@ class GoogleBooksClientTest {
 
         // Dado que el método es privado, verificamos el contrato del record:
         GoogleBooksClient.GoogleBooksResult result =
-                new GoogleBooksClient.GoogleBooksResult("id123", "https://books.google.com/cover.jpg", "Sinopsis");
+                new GoogleBooksClient.GoogleBooksResult("id123", "https://books.google.com/cover.jpg", "Sinopsis", "9780062315007");
 
         assertThat(result.googleBooksId()).isEqualTo("id123");
         assertThat(result.coverUrl()).startsWith("https://");

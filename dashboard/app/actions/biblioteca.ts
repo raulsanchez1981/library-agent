@@ -22,6 +22,51 @@ export async function fetchBookDetail(id: string): Promise<VerifiedTitleDetailDt
   return res.json();
 }
 
+export async function cdlAutoSearch(verifiedTitleIds: string[]): Promise<void> {
+  const res = await apiFetch("/api/v1/admin/verified-titles/cdl-auto-search", {
+    method: "POST",
+    body: JSON.stringify({ verifiedTitleIds }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} — ${body || res.statusText}`);
+  }
+}
+
+export async function cdlAutoSearchAll(): Promise<void> {
+  const res = await apiFetch("/api/v1/admin/verified-titles/cdl-auto-search-all", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} — ${body || res.statusText}`);
+  }
+}
+
+export async function reEnrichGoogleBooks(): Promise<void> {
+  const res = await apiFetch("/api/v1/admin/verified-titles/re-enrich-google-books", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} — ${body || res.statusText}`);
+  }
+}
+
+export async function confirmBook(verifiedTitleId: string): Promise<VerifiedTitleDetailDto> {
+  const res = await apiFetch(
+    `/api/v1/admin/verified-titles/${verifiedTitleId}/confirm`,
+    { method: "POST" }
+  );
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} — ${body || res.statusText}`);
+  }
+  revalidatePath("/biblioteca");
+  revalidatePath(`/biblioteca/${verifiedTitleId}`);
+  return res.json();
+}
+
 export async function enrichFromCdl(
   verifiedTitleId: string,
   casaDelLibroUrl: string

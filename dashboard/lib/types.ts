@@ -2,6 +2,7 @@ export type RecommendationStatus = "NUEVA" | "VISTA" | "DESCARTADA";
 
 export type Confidence = "HIGH" | "MEDIUM" | "LOW" | "VERIFIED";
 export type EnrichmentSource = "SONNET" | "OL_ONLY" | "NONE" | "ADMIN";
+export type CdlAutoSearchStatus = "AUTO" | "NOT_FOUND" | "CONFIRMED";
 
 export interface ExtractedBookAdminDto {
   id: string;
@@ -23,6 +24,7 @@ export interface ExtractedBookAdminDto {
   coverUrl: string | null;
   synopsis: string | null;
   cdlEnriched: boolean;
+  cdlAutoSearchStatus: CdlAutoSearchStatus | null;
 }
 
 export interface UpdateExtractedBookRequest {
@@ -50,6 +52,12 @@ export interface VerifiedTitleDto {
   coverUrl: string | null;
   synopsis: string | null;
   googleBooksId: string | null;
+  cdlEnriched: boolean;
+  cdlAutoSearchStatus: CdlAutoSearchStatus | null;
+  publisher: string | null;
+  publishedDate: string | null;
+  pageCount: number | null;
+  isbn: string | null;
 }
 
 export interface GenreDto {
@@ -65,6 +73,11 @@ export interface VerifiedTitleDetailDto {
   technicalSheet: string | null;
   casaDelLibroUrl: string | null;
   genres: GenreDto[];
+  cdlAutoSearchStatus: CdlAutoSearchStatus | null;
+  publisher: string | null;
+  publishedDate: string | null;
+  pageCount: number | null;
+  isbn: string | null;
 }
 
 export interface SpringPage<T> {

@@ -17,4 +17,13 @@ public interface VerifiedTitleRepository extends JpaRepository<VerifiedTitleEnti
 
     @Query("SELECT vt FROM VerifiedTitleEntity vt LEFT JOIN FETCH vt.genres WHERE vt.id = :id")
     Optional<VerifiedTitleEntity> findByIdWithGenres(@Param("id") UUID id);
+
+    /** Títulos sin búsqueda CDL intentada y sin URL de Casa del Libro ya asignada */
+    @Query("SELECT vt.id FROM VerifiedTitleEntity vt WHERE vt.cdlAutoSearchStatus IS NULL AND vt.casaDelLibroUrl IS NULL")
+    List<UUID> findAllPendingCdlSearch();
+
+    /** Títulos enriquecidos automáticamente por Google Books (sin CDL) — para re-enriquecimiento forzado */
+    @Query("SELECT vt.id FROM VerifiedTitleEntity vt WHERE vt.cdlAutoSearchStatus = 'AUTO' AND vt.casaDelLibroUrl IS NULL")
+    List<UUID> findAllAutoEnrichedWithoutCdl();
+
 }

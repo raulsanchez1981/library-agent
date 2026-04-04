@@ -5,6 +5,7 @@ import com.libraryagent.config.security.SecurityConfig;
 import com.libraryagent.ingestion.dto.GenreDto;
 import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
 import com.libraryagent.ingestion.service.CasaDelLibroScraperService;
+import com.libraryagent.ingestion.service.CdlAutoSearchService;
 import com.libraryagent.ingestion.service.VerifiedTitleEnrichService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,9 @@ class VerifiedTitleEnrichControllerTest {
     @MockitoBean
     VerifiedTitleEnrichService enrichService;
 
+    @MockitoBean
+    CdlAutoSearchService cdlAutoSearchService;
+
     @Test
     void shouldEnrichVerifiedTitleAndReturnDetailDto() throws Exception {
         // Given
@@ -56,7 +60,9 @@ class VerifiedTitleEnrichControllerTest {
                 "Un libro épico.",
                 "{\"ISBN\":\"978-84-12345-67-8\"}",
                 "https://www.casadellibro.com/libro/el-nombre-del-viento",
-                List.of(new GenreDto(UUID.randomUUID(), "Fantasía"))
+                List.of(new GenreDto(UUID.randomUUID(), "Fantasía")),
+                null,
+                null, null, null, null
         );
         when(enrichService.enrichFromCdl(eq(id), any())).thenReturn(dto);
 

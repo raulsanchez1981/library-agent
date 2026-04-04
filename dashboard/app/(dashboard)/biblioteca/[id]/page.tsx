@@ -1,7 +1,8 @@
 import { fetchBookDetail } from "@/app/actions/biblioteca";
-import Image from "next/image";
 import Link from "next/link";
 import type { VerifiedTitleDetailDto } from "@/lib/types";
+import CdlVerifyButton from "@/components/biblioteca/cdl-verify-button";
+import BookCoverImage from "@/components/biblioteca/book-cover-image";
 
 export default async function BookDetailPage({
   params,
@@ -25,21 +26,16 @@ export default async function BookDetailPage({
 
       <div className="flex gap-8">
         {/* Portada */}
-        <div className="flex-shrink-0">
+        <div className="flex-shrink-0 w-48">
           <div className="relative w-48 aspect-[2/3] rounded-xl overflow-hidden bg-zinc-100 shadow-md ring-1 ring-zinc-200">
             {book.coverUrl ? (
-              <Image
-                src={book.coverUrl}
-                alt={book.name}
-                fill
-                className="object-cover"
-                sizes="192px"
-              />
+              <BookCoverImage src={book.coverUrl} alt={book.name} />
             ) : (
               <div className="flex h-full items-center justify-center p-4">
                 <span className="text-center text-sm text-zinc-400 leading-snug">{book.name}</span>
               </div>
             )}
+            <CdlDetailBadge book={book} />
           </div>
           {book.casaDelLibroUrl && (
             <a
@@ -54,6 +50,7 @@ export default async function BookDetailPage({
               </svg>
             </a>
           )}
+          <CdlVerifyButton id={book.id} currentCdlUrl={book.casaDelLibroUrl} />
         </div>
 
         {/* Contenido */}
@@ -83,11 +80,68 @@ export default async function BookDetailPage({
           )}
 
           {/* Ficha técnica */}
-          {book.technicalSheet && (
+          {book.technicalSheet ? (
             <TechnicalSheet raw={book.technicalSheet} />
-          )}
+          ) : (book.publisher || book.publishedDate || book.pageCount || book.isbn) ? (
+            <GoogleBooksSheet book={book} />
+          ) : null}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CdlDetailBadge({ book }: { book: VerifiedTitleDetailDto }) {
+  const status = book.cdlAutoSearchStatus;
+
+  if (status === "CONFIRMED") {
+    return (
+      <span title="Verificado" className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-white shadow">
+        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  if (status === "AUTO") {
+    return (
+      <span title="Datos obtenidos automáticamente — pendiente de verificación" className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 ring-2 ring-white shadow">
+        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  if (status === "NOT_FOUND") {
+    return (
+      <span title="No se encontraron datos automáticamente" className="absolute bottom-2 right-2 flex h-6 w-6 items-center justify-center rounded-full bg-zinc-400 ring-2 ring-white shadow">
+        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  return null;
+}
+
+function GoogleBooksSheet({ book }: { book: VerifiedTitleDetailDto }) {
+  const entries: [string, string][] = [];
+  if (book.publisher) entries.push(["Editorial", book.publisher]);
+  if (book.publishedDate) entries.push(["Fecha de publicación", book.publishedDate]);
+  if (book.pageCount) entries.push(["Páginas", String(book.pageCount)]);
+  if (book.isbn) entries.push(["ISBN", book.isbn]);
+
+  return (
+    <div className="mt-6">
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-zinc-400 mb-2">Ficha técnica</h2>
+      <dl className="divide-y divide-zinc-100 rounded-xl border border-zinc-200 bg-white overflow-hidden">
+        {entries.map(([key, value]) => (
+          <div key={key} className="flex px-4 py-2.5 text-sm">
+            <dt className="w-36 flex-shrink-0 font-medium text-zinc-500">{key}</dt>
+            <dd className="text-zinc-800">{value}</dd>
+          </div>
+        ))}
+      </dl>
     </div>
   );
 }

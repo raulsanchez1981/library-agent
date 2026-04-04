@@ -1,7 +1,7 @@
 import { fetchBiblioteca } from "@/app/actions/biblioteca";
 import type { VerifiedTitleDto } from "@/lib/types";
-import Image from "next/image";
 import Link from "next/link";
+import BookCoverImage from "@/components/biblioteca/book-cover-image";
 
 export default async function BibliotecaPage() {
   const books = await fetchBiblioteca();
@@ -32,24 +32,55 @@ export default async function BibliotecaPage() {
   );
 }
 
+function CdlBadge({
+  cdlAutoSearchStatus,
+}: {
+  cdlEnriched: boolean;
+  cdlAutoSearchStatus: VerifiedTitleDto["cdlAutoSearchStatus"];
+}) {
+  if (cdlAutoSearchStatus === "CONFIRMED") {
+    return (
+      <span title="Datos verificados" className="absolute bottom-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 ring-2 ring-white shadow">
+        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  if (cdlAutoSearchStatus === "AUTO") {
+    return (
+      <span title="Datos obtenidos automáticamente — pendiente de verificación" className="absolute bottom-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 ring-2 ring-white shadow">
+        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  if (cdlAutoSearchStatus === "NOT_FOUND") {
+    return (
+      <span title="No se encontraron datos automáticamente" className="absolute bottom-1.5 right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-zinc-400 ring-2 ring-white shadow">
+        <svg className="w-2.5 h-2.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3.5} d="M5 13l4 4L19 7" />
+        </svg>
+      </span>
+    );
+  }
+  return null;
+}
+
 function BookCard({ book }: { book: VerifiedTitleDto }) {
   return (
     <Link href={`/biblioteca/${book.id}`} className="group flex flex-col gap-2">
       {/* Portada */}
       <div className="relative aspect-[2/3] w-full overflow-hidden rounded-lg bg-zinc-100 shadow-sm ring-1 ring-zinc-200 transition-shadow group-hover:shadow-md">
         {book.coverUrl ? (
-          <Image
-            src={book.coverUrl}
-            alt={book.name}
-            fill
-            className="object-cover"
-            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 16vw"
-          />
+          <BookCoverImage src={book.coverUrl} alt={book.name} />
         ) : (
           <div className="flex h-full items-center justify-center p-3">
             <span className="text-center text-xs text-zinc-400 leading-snug">{book.name}</span>
           </div>
         )}
+        <CdlBadge cdlEnriched={book.cdlEnriched} cdlAutoSearchStatus={book.cdlAutoSearchStatus} />
       </div>
 
       {/* Info */}

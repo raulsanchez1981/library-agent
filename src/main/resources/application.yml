@@ -71,4 +71,6 @@ management:
 logging:
   level:
     com.libraryagent: INFO
+    com.libraryagent.ingestion.service.GoogleCustomSearchServiceImpl: DEBUG
+    com.libraryagent.ingestion.client.GoogleBooksClient: DEBUG
     org.flywaydb: INFO

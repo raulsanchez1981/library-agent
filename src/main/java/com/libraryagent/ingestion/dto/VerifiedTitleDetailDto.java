@@ -1,6 +1,7 @@
 package com.libraryagent.ingestion.dto;
 
 import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
+import com.libraryagent.ingestion.service.CdlAutoSearchStatus;
 
 import java.util.List;
 import java.util.UUID;
@@ -12,7 +13,12 @@ public record VerifiedTitleDetailDto(
         String synopsis,
         String technicalSheet,
         String casaDelLibroUrl,
-        List<GenreDto> genres
+        List<GenreDto> genres,
+        CdlAutoSearchStatus cdlAutoSearchStatus,
+        String publisher,
+        String publishedDate,
+        Integer pageCount,
+        String isbn
 ) {
 
     public static VerifiedTitleDetailDto fromEntity(VerifiedTitleEntity entity) {
@@ -27,7 +33,12 @@ public record VerifiedTitleDetailDto(
                 entity.getSynopsis(),
                 entity.getTechnicalSheet(),
                 entity.getCasaDelLibroUrl(),
-                genreDtos
+                genreDtos,
+                entity.getCdlAutoSearchStatus(),
+                entity.getPublisher(),
+                entity.getPublishedDate(),
+                entity.getPageCount(),
+                entity.getIsbn()
         );
     }
 }

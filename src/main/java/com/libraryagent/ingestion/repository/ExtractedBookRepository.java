@@ -33,6 +33,12 @@ public interface ExtractedBookRepository extends JpaRepository<ExtractedBookEnti
 
     List<ExtractedBookEntity> findByVerifiedTitleAndConfidence(VerifiedTitleEntity verifiedTitle, Confidence confidence);
 
+    @Query("SELECT e FROM ExtractedBookEntity e WHERE e.verifiedTitle.id = :vtId " +
+           "AND e.titleEs IS NOT NULL " +
+           "AND (e.authorCorrected IS NOT NULL OR e.author IS NOT NULL) " +
+           "ORDER BY e.confidence DESC")
+    List<ExtractedBookEntity> findByVerifiedTitleIdWithSearchData(@Param("vtId") UUID vtId, Pageable pageable);
+
     @Query("SELECT e FROM ExtractedBookEntity e WHERE " +
            "LOWER(e.title) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
            "LOWER(e.titleEs) LIKE LOWER(CONCAT('%', :q, '%')) OR " +
