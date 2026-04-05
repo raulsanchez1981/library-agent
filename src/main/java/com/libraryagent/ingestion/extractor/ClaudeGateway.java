@@ -25,4 +25,12 @@ public interface ClaudeGateway {
      *           author puede ser null si Sonnet no conoce el libro.
      */
     String lookupAuthorsBatchJson(String booksJson);
+
+    /**
+     * Usa Claude Haiku para inferir géneros literarios de una lista de libros.
+     * Entrada: array JSON [{"title":"...","author":"...","synopsis":"..."}, ...]
+     *   synopsis puede ser null — en ese caso usa solo título y autor
+     * Salida: array JSON en el mismo orden: [{"genres":["Fantasía épica","Aventura"]}, ...]
+     */
+    String inferGenresBatchJson(String booksJson);
 }

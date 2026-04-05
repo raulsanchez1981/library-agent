@@ -6,6 +6,7 @@ import com.libraryagent.ingestion.dto.GenreDto;
 import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
 import com.libraryagent.ingestion.service.CasaDelLibroScraperService;
 import com.libraryagent.ingestion.service.CdlAutoSearchService;
+import com.libraryagent.ingestion.service.GenreEnrichmentService;
 import com.libraryagent.ingestion.service.VerifiedTitleEnrichService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +49,9 @@ class VerifiedTitleEnrichControllerTest {
 
     @MockitoBean
     CdlAutoSearchService cdlAutoSearchService;
+
+    @MockitoBean
+    GenreEnrichmentService genreEnrichmentService;
 
     @Test
     void shouldEnrichVerifiedTitleAndReturnDetailDto() throws Exception {

@@ -2,19 +2,23 @@ import { fetchBiblioteca } from "@/app/actions/biblioteca";
 import type { VerifiedTitleDto } from "@/lib/types";
 import Link from "next/link";
 import BookCoverImage from "@/components/biblioteca/book-cover-image";
+import EnrichGenresButton from "@/components/biblioteca/enrich-genres-button";
 
 export default async function BibliotecaPage() {
   const books = await fetchBiblioteca();
 
   return (
     <div className="px-8 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-zinc-900">Biblioteca</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          {books.length > 0
-            ? `${books.length} libro${books.length !== 1 ? "s" : ""} verificados`
-            : "Sin libros verificados todavía"}
-        </p>
+      <div className="mb-6 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-zinc-900">Biblioteca</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            {books.length > 0
+              ? `${books.length} libro${books.length !== 1 ? "s" : ""} verificados`
+              : "Sin libros verificados todavía"}
+          </p>
+        </div>
+        <EnrichGenresButton />
       </div>
 
       {books.length === 0 ? (

@@ -17,7 +17,9 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.text.Normalizer;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Component
@@ -104,52 +106,74 @@ public class GoogleBooksClient {
             JsonNode items = objectMapper.readTree(response.body()).path("items");
             if (!items.isArray() || items.isEmpty()) return Optional.empty();
 
-            // Paso 1: título + language=es + synopsis
-            // Google ordena por relevancia: el primer resultado con datos completos es el mejor.
-            // Nota: langRestrict=es ya filtra la respuesta, así que todos los items son en español.
+            // Paso 1: language=es + synopsis + imageLinks (datos completos)
             for (JsonNode item : items) {
                 JsonNode vi = item.path("volumeInfo");
                 if (titlesMatch(titleEs, vi.path("title").asText(""))
                         && "es".equals(vi.path("language").asText(""))
-                        && !vi.path("description").isMissingNode()
-                        && !vi.path("description").asText("").isBlank()) {
+                        && hasDescription(vi)
+                        && !vi.path("imageLinks").isMissingNode()) {
                     String isbn = extractIsbn(vi);
-                    log.info("Google Books: volumen en español con synopsis para '{}'", titleEs);
+                    log.info("Google Books: volumen en español con synopsis e imageLinks para '{}'", titleEs);
                     return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
                 }
             }
 
-            // Paso 2: título + ISBN 9788 + synopsis (edición peninsular con datos)
+            // Paso 2: ISBN 9788 + synopsis + imageLinks (edición peninsular completa)
             for (JsonNode item : items) {
                 JsonNode vi = item.path("volumeInfo");
                 String isbn = extractIsbn(vi);
                 if (titlesMatch(titleEs, vi.path("title").asText(""))
                         && isbn != null && isbn.startsWith("9788")
-                        && !vi.path("description").isMissingNode()
-                        && !vi.path("description").asText("").isBlank()) {
-                    log.info("Google Books: volumen con ISBN 9788 y synopsis para '{}'", titleEs);
+                        && hasDescription(vi)
+                        && !vi.path("imageLinks").isMissingNode()) {
+                    log.info("Google Books: volumen ISBN 9788 con synopsis e imageLinks para '{}'", titleEs);
                     return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
                 }
             }
 
-            // Paso 3: título + language=es sin synopsis (al menos en español)
+            // Paso 3: language=es + synopsis (sin cover)
+            for (JsonNode item : items) {
+                JsonNode vi = item.path("volumeInfo");
+                if (titlesMatch(titleEs, vi.path("title").asText(""))
+                        && "es".equals(vi.path("language").asText(""))
+                        && hasDescription(vi)) {
+                    String isbn = extractIsbn(vi);
+                    log.info("Google Books: volumen en español con synopsis (sin imageLinks) para '{}'", titleEs);
+                    return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
+                }
+            }
+
+            // Paso 4: language=es + imageLinks (sin synopsis)
+            for (JsonNode item : items) {
+                JsonNode vi = item.path("volumeInfo");
+                if (titlesMatch(titleEs, vi.path("title").asText(""))
+                        && "es".equals(vi.path("language").asText(""))
+                        && !vi.path("imageLinks").isMissingNode()) {
+                    String isbn = extractIsbn(vi);
+                    log.info("Google Books: volumen en español con imageLinks (sin synopsis) para '{}'", titleEs);
+                    return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
+                }
+            }
+
+            // Paso 5: language=es (cualquier edición en español)
             for (JsonNode item : items) {
                 JsonNode vi = item.path("volumeInfo");
                 if (titlesMatch(titleEs, vi.path("title").asText(""))
                         && "es".equals(vi.path("language").asText(""))) {
                     String isbn = extractIsbn(vi);
-                    log.info("Google Books: volumen en español (sin synopsis) para '{}'", titleEs);
+                    log.info("Google Books: volumen en español (sin datos) para '{}'", titleEs);
                     return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
                 }
             }
 
-            // Paso 4: título + ISBN 9788 sin synopsis (último recurso)
+            // Paso 6: ISBN 9788 (último recurso)
             for (JsonNode item : items) {
                 JsonNode vi = item.path("volumeInfo");
                 String isbn = extractIsbn(vi);
                 if (titlesMatch(titleEs, vi.path("title").asText(""))
                         && isbn != null && isbn.startsWith("9788")) {
-                    log.info("Google Books: volumen con ISBN 9788 (sin synopsis) para '{}'", titleEs);
+                    log.info("Google Books: volumen ISBN 9788 (sin datos) para '{}'", titleEs);
                     return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
                 }
             }
@@ -161,6 +185,11 @@ public class GoogleBooksClient {
             log.warn("Error en findBestSpanishVolume para '{}': {}", titleEs, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    private boolean hasDescription(JsonNode volumeInfo) {
+        return !volumeInfo.path("description").isMissingNode()
+                && !volumeInfo.path("description").asText("").isBlank();
     }
 
     private boolean titlesMatch(String searched, String result) {
@@ -194,8 +223,20 @@ public class GoogleBooksClient {
                 vi.path("publisher").asText(null),
                 vi.path("publishedDate").asText(null),
                 vi.path("pageCount").isInt() ? vi.path("pageCount").intValue() : null,
-                isbn
+                isbn,
+                extractCategories(vi)
         );
+    }
+
+    private List<String> extractCategories(JsonNode volumeInfo) {
+        JsonNode cats = volumeInfo.path("categories");
+        if (!cats.isArray() || cats.isEmpty()) return List.of();
+        List<String> result = new ArrayList<>();
+        cats.forEach(node -> {
+            String cat = node.asText(null);
+            if (cat != null && !cat.isBlank()) result.add(cat);
+        });
+        return List.copyOf(result);
     }
 
     /**
@@ -205,11 +246,18 @@ public class GoogleBooksClient {
      */
     private String findBestCoverUrl(JsonNode volumeInfo, String isbn) {
         JsonNode imageLinks = volumeInfo.path("imageLinks");
-        if (imageLinks.isMissingNode()) return null;
+        if (imageLinks.isMissingNode()) {
+            log.info("Cover: sin imageLinks en Google Books para ISBN {}", isbn);
+            return null;
+        }
         String thumbnail = imageLinks.path("thumbnail").asText(null);
-        if (thumbnail == null) return null;
+        if (thumbnail == null) {
+            log.info("Cover: imageLinks presente pero sin thumbnail para ISBN {}", isbn);
+            return null;
+        }
         thumbnail = thumbnail.replace("http://", "https://");
         thumbnail = thumbnail.replaceAll("&edge=curl", "");
+        log.info("Cover: URL guardada → {}", thumbnail);
         return thumbnail;
     }
 

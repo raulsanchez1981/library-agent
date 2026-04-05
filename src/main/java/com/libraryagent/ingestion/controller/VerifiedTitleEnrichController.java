@@ -6,6 +6,7 @@ import com.libraryagent.ingestion.dto.EnrichCdlRequest;
 import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
 import com.libraryagent.ingestion.service.CasaDelLibroScraperService;
 import com.libraryagent.ingestion.service.CdlAutoSearchService;
+import com.libraryagent.ingestion.service.GenreEnrichmentService;
 import com.libraryagent.ingestion.service.VerifiedTitleEnrichService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -22,14 +23,17 @@ public class VerifiedTitleEnrichController {
     private final VerifiedTitleEnrichService enrichService;
     private final CasaDelLibroScraperService scraperService;
     private final CdlAutoSearchService cdlAutoSearchService;
+    private final GenreEnrichmentService genreEnrichmentService;
 
     public VerifiedTitleEnrichController(
             VerifiedTitleEnrichService enrichService,
             CasaDelLibroScraperService scraperService,
-            CdlAutoSearchService cdlAutoSearchService) {
+            CdlAutoSearchService cdlAutoSearchService,
+            GenreEnrichmentService genreEnrichmentService) {
         this.enrichService = enrichService;
         this.scraperService = scraperService;
         this.cdlAutoSearchService = cdlAutoSearchService;
+        this.genreEnrichmentService = genreEnrichmentService;
     }
 
     /** Enriquecimiento manual desde URL de Casa del Libro. Marca como CONFIRMED. */
@@ -72,5 +76,12 @@ public class VerifiedTitleEnrichController {
     public ResponseEntity<CdlEnrichmentResultDto> scrapePreview(
             @Valid @RequestBody EnrichCdlRequest request) {
         return ResponseEntity.ok(scraperService.scrape(request.casaDelLibroUrl()));
+    }
+
+    /** Enriquece géneros de todos los VerifiedTitle con Haiku. 202 inmediato. */
+    @PostMapping("/enrich-all-genres")
+    public ResponseEntity<Void> enrichAllGenres() {
+        genreEnrichmentService.enrichAllGenres();
+        return ResponseEntity.accepted().build();
     }
 }

@@ -1,5 +1,7 @@
 package com.libraryagent.ingestion.dto;
 
+import java.util.List;
+
 public record GoogleBooksEnrichmentDto(
         String googleBooksId,
         String coverUrl,
@@ -7,5 +9,6 @@ public record GoogleBooksEnrichmentDto(
         String publisher,
         String publishedDate,
         Integer pageCount,
-        String isbn
+        String isbn,
+        List<String> categories
 ) {}

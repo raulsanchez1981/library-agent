@@ -72,6 +72,17 @@ public class VerifiedTitleEnrichServiceImpl implements VerifiedTitleEnrichServic
         vt.setIsbn(data.isbn());
         vt.setCdlAutoSearchStatus(CdlAutoSearchStatus.AUTO);
 
+        if (data.categories() != null && !data.categories().isEmpty()) {
+            List<String> existingNames = vt.getGenres().stream()
+                    .map(GenreEntity::getName)
+                    .map(String::toLowerCase)
+                    .toList();
+            data.categories().stream()
+                    .filter(name -> !existingNames.contains(name.toLowerCase()))
+                    .map(genreService::findOrCreate)
+                    .forEach(vt.getGenres()::add);
+        }
+
         return VerifiedTitleDetailDto.fromEntity(verifiedTitleRepository.save(vt));
     }
 

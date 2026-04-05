@@ -26,4 +26,12 @@ public interface VerifiedTitleRepository extends JpaRepository<VerifiedTitleEnti
     @Query("SELECT vt.id FROM VerifiedTitleEntity vt WHERE vt.cdlAutoSearchStatus = 'AUTO' AND vt.casaDelLibroUrl IS NULL")
     List<UUID> findAllAutoEnrichedWithoutCdl();
 
+    /** Títulos sin ningún género asignado */
+    @Query("SELECT vt FROM VerifiedTitleEntity vt LEFT JOIN FETCH vt.genres WHERE vt.genres IS EMPTY")
+    List<VerifiedTitleEntity> findAllWithoutGenres();
+
+    /** Todos los títulos con sus géneros cargados (para enrichAllGenres) */
+    @Query("SELECT vt FROM VerifiedTitleEntity vt LEFT JOIN FETCH vt.genres")
+    List<VerifiedTitleEntity> findAllWithGenres();
+
 }

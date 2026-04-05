@@ -67,6 +67,16 @@ export async function confirmBook(verifiedTitleId: string): Promise<VerifiedTitl
   return res.json();
 }
 
+export async function enrichAllGenres(): Promise<void> {
+  const res = await apiFetch("/api/v1/admin/verified-titles/enrich-all-genres", {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`HTTP ${res.status} — ${body || res.statusText}`);
+  }
+}
+
 export async function enrichFromCdl(
   verifiedTitleId: string,
   casaDelLibroUrl: string

@@ -11,6 +11,8 @@ import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.service.BibliotecaService;
 import com.libraryagent.ingestion.service.ExtractedBookAdminService;
 import com.libraryagent.ingestion.service.CasaDelLibroScraperService;
+import com.libraryagent.ingestion.service.CdlAutoSearchService;
+import com.libraryagent.ingestion.service.GenreEnrichmentService;
 import com.libraryagent.ingestion.service.GenreService;
 import com.libraryagent.ingestion.service.VerifiedTitleEnrichService;
 import com.libraryagent.recommendation.service.RecommendationService;
@@ -65,6 +67,12 @@ class SecurityConfigTest {
 
     @MockitoBean
     CasaDelLibroScraperService casaDelLibroScraperService;
+
+    @MockitoBean
+    CdlAutoSearchService cdlAutoSearchService;
+
+    @MockitoBean
+    GenreEnrichmentService genreEnrichmentService;
 
     // Registra el TestController en el contexto — @WebMvcTest no escanea clases internas
     @TestConfiguration
