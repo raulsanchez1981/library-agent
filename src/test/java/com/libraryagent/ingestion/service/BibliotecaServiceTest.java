@@ -1,10 +1,8 @@
 package com.libraryagent.ingestion.service;
 
 import com.libraryagent.ingestion.dto.VerifiedTitleDto;
-import com.libraryagent.ingestion.entity.AuthorEntity;
 import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.extractor.Confidence;
-import com.libraryagent.ingestion.model.ExtractedBookEntity;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
 import org.junit.jupiter.api.Test;
@@ -35,6 +33,7 @@ class BibliotecaServiceTest {
     void shouldReturnEmptyListWhenNoVerifiedTitles() {
         // Given
         when(verifiedTitleRepository.findAllByOrderByNameAsc()).thenReturn(List.of());
+        // findVerifiedTitleIdAndAuthorNameByConfidence devuelve lista vacía por defecto (Mockito)
 
         // When
         List<VerifiedTitleDto> result = service.findAll();
@@ -49,9 +48,7 @@ class BibliotecaServiceTest {
         VerifiedTitleEntity dune = buildVerifiedTitle("Dune", null, null, null);
         VerifiedTitleEntity fundacion = buildVerifiedTitle("Fundación", null, null, null);
         when(verifiedTitleRepository.findAllByOrderByNameAsc()).thenReturn(List.of(dune, fundacion));
-        when(extractedBookRepository.findByVerifiedTitleAndConfidence(dune, Confidence.VERIFIED))
-                .thenReturn(List.of());
-        when(extractedBookRepository.findByVerifiedTitleAndConfidence(fundacion, Confidence.VERIFIED))
+        when(extractedBookRepository.findVerifiedTitleIdAndAuthorNameByConfidence(Confidence.VERIFIED))
                 .thenReturn(List.of());
 
         // When
@@ -66,14 +63,16 @@ class BibliotecaServiceTest {
     @Test
     void shouldAggregateDistinctAuthorsFromVerifiedBooks() {
         // Given
-        VerifiedTitleEntity dune = buildVerifiedTitle("Dune", null, null, null);
+        UUID duneId = UUID.randomUUID();
+        VerifiedTitleEntity dune = buildVerifiedTitleWithId(duneId, "Dune", null, null, null);
         when(verifiedTitleRepository.findAllByOrderByNameAsc()).thenReturn(List.of(dune));
 
-        AuthorEntity frank = buildAuthor("Frank Herbert");
-        ExtractedBookEntity book1 = buildBookWithAuthors(List.of(frank));
-        ExtractedBookEntity book2 = buildBookWithAuthors(List.of(frank)); // mismo autor en otro libro
-        when(extractedBookRepository.findByVerifiedTitleAndConfidence(dune, Confidence.VERIFIED))
-                .thenReturn(List.of(book1, book2));
+        // El mismo autor aparece en dos libros distintos — debe deduplicarse
+        when(extractedBookRepository.findVerifiedTitleIdAndAuthorNameByConfidence(Confidence.VERIFIED))
+                .thenReturn(List.of(
+                        new Object[]{duneId, "Frank Herbert"},
+                        new Object[]{duneId, "Frank Herbert"}
+                ));
 
         // When
         List<VerifiedTitleDto> result = service.findAll();
@@ -89,7 +88,7 @@ class BibliotecaServiceTest {
         VerifiedTitleEntity vt = buildVerifiedTitle("Dune", "https://cover.url/dune.jpg",
                 "Sinopsis de Dune", "volXYZ");
         when(verifiedTitleRepository.findAllByOrderByNameAsc()).thenReturn(List.of(vt));
-        when(extractedBookRepository.findByVerifiedTitleAndConfidence(vt, Confidence.VERIFIED))
+        when(extractedBookRepository.findVerifiedTitleIdAndAuthorNameByConfidence(Confidence.VERIFIED))
                 .thenReturn(List.of());
 
         // When
@@ -105,14 +104,15 @@ class BibliotecaServiceTest {
     @Test
     void shouldReturnSortedAuthorsAlphabetically() {
         // Given
-        VerifiedTitleEntity vt = buildVerifiedTitle("Good Omens", null, null, null);
+        UUID vtId = UUID.randomUUID();
+        VerifiedTitleEntity vt = buildVerifiedTitleWithId(vtId, "Good Omens", null, null, null);
         when(verifiedTitleRepository.findAllByOrderByNameAsc()).thenReturn(List.of(vt));
 
-        AuthorEntity gaiman = buildAuthor("Neil Gaiman");
-        AuthorEntity pratchett = buildAuthor("Terry Pratchett");
-        ExtractedBookEntity book = buildBookWithAuthors(List.of(pratchett, gaiman));
-        when(extractedBookRepository.findByVerifiedTitleAndConfidence(vt, Confidence.VERIFIED))
-                .thenReturn(List.of(book));
+        when(extractedBookRepository.findVerifiedTitleIdAndAuthorNameByConfidence(Confidence.VERIFIED))
+                .thenReturn(List.of(
+                        new Object[]{vtId, "Terry Pratchett"},
+                        new Object[]{vtId, "Neil Gaiman"}
+                ));
 
         // When
         List<VerifiedTitleDto> result = service.findAll();
@@ -131,15 +131,9 @@ class BibliotecaServiceTest {
         return vt;
     }
 
-    private AuthorEntity buildAuthor(String name) {
-        AuthorEntity author = new AuthorEntity(name);
-        return author;
-    }
-
-    private ExtractedBookEntity buildBookWithAuthors(List<AuthorEntity> authors) {
-        ExtractedBookEntity book = new ExtractedBookEntity();
-        book.setId(UUID.randomUUID());
-        book.getAuthors().addAll(authors);
-        return book;
+    private VerifiedTitleEntity buildVerifiedTitleWithId(UUID id, String name, String coverUrl, String synopsis, String googleBooksId) {
+        VerifiedTitleEntity vt = buildVerifiedTitle(name, coverUrl, synopsis, googleBooksId);
+        vt.setId(id);
+        return vt;
     }
 }

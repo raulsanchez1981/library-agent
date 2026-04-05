@@ -4,6 +4,7 @@ import com.libraryagent.ingestion.dto.AuthorRefDto;
 import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
 import com.libraryagent.ingestion.dto.VerifiedTitleDto;
 import com.libraryagent.ingestion.entity.AuthorEntity;
+import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
@@ -12,7 +13,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class BibliotecaServiceImpl implements BibliotecaService {
@@ -30,13 +33,22 @@ public class BibliotecaServiceImpl implements BibliotecaService {
     @Override
     @Transactional(readOnly = true)
     public List<VerifiedTitleDto> findAll() {
-        return verifiedTitleRepository.findAllByOrderByNameAsc().stream()
+        // Query 1: todos los títulos ordenados
+        List<VerifiedTitleEntity> titles = verifiedTitleRepository.findAllByOrderByNameAsc();
+
+        // Query 2: todos los (vtId, authorName) de libros VERIFIED — evita N+1
+        Map<UUID, List<String>> authorsByVtId = extractedBookRepository
+                .findVerifiedTitleIdAndAuthorNameByConfidence(Confidence.VERIFIED)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        row -> (UUID) row[0],
+                        Collectors.mapping(row -> (String) row[1], Collectors.toList())
+                ));
+
+        return titles.stream()
                 .map(vt -> {
-                    List<String> authors = extractedBookRepository
-                            .findByVerifiedTitleAndConfidence(vt, Confidence.VERIFIED)
+                    List<String> authors = authorsByVtId.getOrDefault(vt.getId(), List.of())
                             .stream()
-                            .flatMap(book -> book.getAuthors().stream())
-                            .map(AuthorEntity::getName)
                             .distinct()
                             .sorted()
                             .toList();

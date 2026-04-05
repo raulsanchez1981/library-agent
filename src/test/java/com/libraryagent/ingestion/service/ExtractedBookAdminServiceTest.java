@@ -406,7 +406,7 @@ class ExtractedBookAdminServiceTest {
 
         // Then — el libro sin título verificado queda vinculado
         assertThat(unlinkedBook.getVerifiedTitle()).isEqualTo(vt);
-        verify(repository).save(unlinkedBook);
+        verify(repository).saveAll(List.of(unlinkedBook));
     }
 
     // --- Helpers ---
@@ -429,7 +429,7 @@ class ExtractedBookAdminServiceTest {
      */
     private void stubLinkUnverifiedBooks() {
         when(repository.findByVerifiedTitleIsNullAndTitleEsIsNotNull()).thenReturn(List.of());
-        when(verifiedTitleRepository.findAll()).thenReturn(List.of());
+        // findAll() solo se llama si hay libros sin título verificado — con lista vacía no se invoca
         when(authorRepository.findByVerifiedTrue()).thenReturn(List.of());
     }
 
