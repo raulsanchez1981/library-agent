@@ -48,6 +48,9 @@ class ExtractedBookAdminServiceTest {
     @Mock
     GenreEnrichmentService genreEnrichmentService;
 
+    @Mock
+    BookLinkingService bookLinkingService;
+
     @InjectMocks
     ExtractedBookAdminServiceImpl service;
 
@@ -99,7 +102,7 @@ class ExtractedBookAdminServiceTest {
         // Mocks para linkUnverifiedBooks()
         VerifiedTitleEntity vt = new VerifiedTitleEntity("Dune");
         when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.of(vt));
-        stubLinkUnverifiedBooks();
+
 
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest(
@@ -136,7 +139,7 @@ class ExtractedBookAdminServiceTest {
         when(repository.save(entity)).thenReturn(entity);
 
         // Mocks para linkUnverifiedBooks() — titleEs es null así que no crea VerifiedTitle
-        stubLinkUnverifiedBooks();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest(null, null, null, null);
 
@@ -165,7 +168,7 @@ class ExtractedBookAdminServiceTest {
 
         VerifiedTitleEntity vt = new VerifiedTitleEntity("Fundación");
         when(verifiedTitleRepository.findByNameIgnoreCase("Fundación")).thenReturn(Optional.of(vt));
-        stubLinkUnverifiedBooks();
+
 
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Fundación", null, null, null);
@@ -193,7 +196,7 @@ class ExtractedBookAdminServiceTest {
         when(authorRepository.findByNameIgnoreCase("Neil Gaiman")).thenReturn(Optional.empty());
         when(authorRepository.save(any(AuthorEntity.class))).thenReturn(pratchett).thenReturn(gaiman);
 
-        stubLinkUnverifiedBooks();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest(null, "Terry Pratchett & Neil Gaiman", null, null);
 
@@ -220,7 +223,7 @@ class ExtractedBookAdminServiceTest {
 
         VerifiedTitleEntity vt = new VerifiedTitleEntity("Fundación");
         when(verifiedTitleRepository.findByNameIgnoreCase("Fundación")).thenReturn(Optional.of(vt));
-        stubLinkUnverifiedBooks();
+
 
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Fundación", "Isaac Asimov", null, null);
@@ -248,7 +251,7 @@ class ExtractedBookAdminServiceTest {
         AuthorEntity newAuthor = new AuthorEntity("Brian Herbert");
         when(authorRepository.findByNameIgnoreCase("Brian Herbert")).thenReturn(Optional.of(newAuthor));
 
-        stubLinkUnverifiedBooks();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest(null, "Brian Herbert", null, null);
 
@@ -268,7 +271,7 @@ class ExtractedBookAdminServiceTest {
 
         when(repository.findById(id)).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
-        stubLinkUnverifiedBooks();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Dune", null, null, null);
         when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.empty());
@@ -295,7 +298,7 @@ class ExtractedBookAdminServiceTest {
         VerifiedTitleEntity createdVt = new VerifiedTitleEntity("Dune");
         when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.empty());
         when(verifiedTitleRepository.save(any(VerifiedTitleEntity.class))).thenReturn(createdVt);
-        stubLinkUnverifiedBooks();
+
 
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Dune", null, null, null);
@@ -320,7 +323,7 @@ class ExtractedBookAdminServiceTest {
 
         VerifiedTitleEntity existing = new VerifiedTitleEntity("Fundación");
         when(verifiedTitleRepository.findByNameIgnoreCase("Fundación")).thenReturn(Optional.of(existing));
-        stubLinkUnverifiedBooks();
+
 
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Fundación", null, null, null);
@@ -345,7 +348,7 @@ class ExtractedBookAdminServiceTest {
         when(repository.findById(id)).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
         when(authorRepository.save(author)).thenReturn(author);
-        stubLinkUnverifiedBooks();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest(null, null, null, null);
 
@@ -368,7 +371,7 @@ class ExtractedBookAdminServiceTest {
 
         when(repository.findById(id)).thenReturn(Optional.of(entity));
         when(repository.save(entity)).thenReturn(entity);
-        stubLinkUnverifiedBooks();
+
 
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest(null, null, null, null);
 
@@ -423,14 +426,5 @@ class ExtractedBookAdminServiceTest {
         return entity;
     }
 
-    /**
-     * Mockea las llamadas de linkUnverifiedBooks() con listas vacías
-     * para los tests que no prueban esa lógica.
-     */
-    private void stubLinkUnverifiedBooks() {
-        when(repository.findByVerifiedTitleIsNullAndTitleEsIsNotNull()).thenReturn(List.of());
-        // findAll() solo se llama si hay libros sin título verificado — con lista vacía no se invoca
-        when(authorRepository.findByVerifiedTrue()).thenReturn(List.of());
-    }
-
 }
+

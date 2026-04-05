@@ -32,13 +32,17 @@ class BookEnrichmentServiceTest {
     @Mock AuthorRepository authorRepository;
     @Mock ClaudeGateway claudeGateway;
     @Mock OpenLibraryClient openLibraryClient;
-    @Mock ExtractedBookAdminService extractedBookAdminService;
+    @Mock BookLinkingService bookLinkingService;
 
-    BookEnrichmentService service;
+    BookEnrichmentServiceImpl service;
 
     @BeforeEach
     void setUp() {
-        service = new BookEnrichmentService(repository, authorRepository, claudeGateway, openLibraryClient, new ObjectMapper(), extractedBookAdminService);
+        ObjectMapper objectMapper = new ObjectMapper();
+        ClaudeResponseParser parser = new ClaudeResponseParser(claudeGateway, objectMapper);
+        SpanishTitleResolver titleResolver = new SpanishTitleResolver(openLibraryClient);
+        AuthorEnricher authorEnricher = new AuthorEnricher(authorRepository);
+        service = new BookEnrichmentServiceImpl(repository, parser, titleResolver, authorEnricher, bookLinkingService, objectMapper);
     }
 
     // ── Caso 1: SONNET + HIGH ─────────────────────────────────────────────────
@@ -197,7 +201,7 @@ class BookEnrichmentServiceTest {
         // Then
         verify(claudeGateway, never()).enrichBooksBatchJson(anyString());
         verify(repository, never()).saveAll(any());
-        verify(extractedBookAdminService, never()).linkUnverifiedBooks();
+        verify(bookLinkingService, never()).linkUnverifiedBooks();
     }
 
     @Test
@@ -213,7 +217,7 @@ class BookEnrichmentServiceTest {
         service.enrichPending();
 
         // Then — linkUnverifiedBooks se invoca una vez, al final del pipeline
-        verify(extractedBookAdminService, times(1)).linkUnverifiedBooks();
+        verify(bookLinkingService, times(1)).linkUnverifiedBooks();
     }
 
     @Test
