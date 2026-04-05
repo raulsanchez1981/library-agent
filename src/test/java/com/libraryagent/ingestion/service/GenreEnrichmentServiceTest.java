@@ -129,6 +129,27 @@ class GenreEnrichmentServiceTest {
     }
 
     @Test
+    void shouldReturnZeroWhenClaudeReturnsMalformedJson() {
+        // Given
+        VerifiedTitleEntity vt = new VerifiedTitleEntity();
+        vt.setName("Dune");
+
+        when(verifiedTitleRepository.findAllWithoutGenres()).thenReturn(List.of(vt));
+        when(extractedBookRepository.findByVerifiedTitleIdWithSearchData(any(), any()))
+                .thenReturn(List.of());
+        when(claudeGateway.inferGenresBatchJson(anyString()))
+                .thenReturn("esto no es JSON válido {{{");
+
+        // When
+        int result = service.enrichMissingGenres();
+
+        // Then — error silencioso: 0 títulos actualizados, sin excepción propagada
+        assertThat(result).isZero();
+        assertThat(vt.getGenres()).isEmpty();
+        verify(verifiedTitleRepository, never()).save(any());
+    }
+
+    @Test
     void shouldEnrichAllGenresUsingFindAllWithGenres() {
         // Given
         when(verifiedTitleRepository.findAllWithGenres()).thenReturn(List.of());

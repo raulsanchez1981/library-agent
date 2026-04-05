@@ -203,7 +203,7 @@ Los records internos `BookInput`, `BookLookupInput`, `SonnetEnrichment` pueden m
 
 ---
 
-## FASE 5 — Unificar manejo de errores
+## FASE 5 — Unificar manejo de errores ✅ COMPLETADA
 
 ### 5.1 Excepciones inconsistentes
 
@@ -219,7 +219,7 @@ Los records internos `BookInput`, `BookLookupInput`, `SonnetEnrichment` pueden m
 
 ---
 
-## FASE 6 — Cobertura de tests en lógica crítica
+## FASE 6 — Cobertura de tests en lógica crítica ✅ COMPLETADA
 
 ### 6.1 Tests que faltan o están incompletos
 
