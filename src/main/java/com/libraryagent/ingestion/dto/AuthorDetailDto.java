@@ -5,16 +5,16 @@ import com.libraryagent.ingestion.entity.AuthorEntity;
 import java.util.List;
 import java.util.UUID;
 
-public record AutorDetailDto(
+public record AuthorDetailDto(
         UUID id,
         String name,
         String photoUrl,
         String bio,
         String openLibraryOlid,
-        List<AutorBookDto> books
+        List<AuthorBookDto> books
 ) {
-    public static AutorDetailDto fromEntity(AuthorEntity entity, List<AutorBookDto> books) {
-        return new AutorDetailDto(
+    public static AuthorDetailDto fromEntity(AuthorEntity entity, List<AuthorBookDto> books) {
+        return new AuthorDetailDto(
                 entity.getId(),
                 entity.getName(),
                 entity.getPhotoUrl(),

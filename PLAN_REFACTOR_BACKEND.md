@@ -165,7 +165,7 @@ Los records internos `BookInput`, `BookLookupInput`, `SonnetEnrichment` pueden m
 
 ---
 
-## FASE 4 — Consolidar DTOs y eliminar confusión de naming
+## FASE 4 — Consolidar DTOs y eliminar confusión de naming ✅ COMPLETADA
 
 ### 4.1 DTOs de autor duplicados
 

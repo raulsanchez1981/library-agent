@@ -1,8 +1,8 @@
 package com.libraryagent.ingestion.service;
 
-import com.libraryagent.ingestion.dto.AutorBookDto;
-import com.libraryagent.ingestion.dto.AutorDetailDto;
-import com.libraryagent.ingestion.dto.AutorDto;
+import com.libraryagent.ingestion.dto.AuthorBookDto;
+import com.libraryagent.ingestion.dto.AuthorDetailDto;
+import com.libraryagent.ingestion.dto.AuthorSummaryDto;
 import com.libraryagent.ingestion.repository.AuthorRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -13,37 +13,37 @@ import java.util.List;
 import java.util.UUID;
 
 @Service
-public class AutorServiceImpl implements AutorService {
+public class AuthorServiceImpl implements AuthorService {
 
     private final AuthorRepository authorRepository;
     private final VerifiedTitleRepository verifiedTitleRepository;
 
-    public AutorServiceImpl(AuthorRepository authorRepository, VerifiedTitleRepository verifiedTitleRepository) {
+    public AuthorServiceImpl(AuthorRepository authorRepository, VerifiedTitleRepository verifiedTitleRepository) {
         this.authorRepository = authorRepository;
         this.verifiedTitleRepository = verifiedTitleRepository;
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<AutorDto> findAll() {
+    public List<AuthorSummaryDto> findAll() {
         return authorRepository.findAllWithVerifiedBooks().stream()
                 .map(author -> {
                     int bookCount = verifiedTitleRepository.findAllByAuthorId(author.getId()).size();
-                    return AutorDto.fromEntity(author, bookCount);
+                    return AuthorSummaryDto.fromEntity(author, bookCount);
                 })
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public AutorDetailDto findById(UUID id) {
+    public AuthorDetailDto findById(UUID id) {
         return authorRepository.findById(id)
                 .map(author -> {
-                    List<AutorBookDto> books = verifiedTitleRepository.findAllByAuthorId(id).stream()
-                            .map(AutorBookDto::fromEntity)
+                    List<AuthorBookDto> books = verifiedTitleRepository.findAllByAuthorId(id).stream()
+                            .map(AuthorBookDto::fromEntity)
                             .toList();
-                    return AutorDetailDto.fromEntity(author, books);
+                    return AuthorDetailDto.fromEntity(author, books);
                 })
-                .orElseThrow(() -> new EntityNotFoundException("Autor no encontrado: " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Author not found: " + id));
     }
 }
