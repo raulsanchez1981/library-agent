@@ -26,17 +26,19 @@ import java.util.Optional;
 public class GoogleBooksClient {
 
     private static final Logger log = LoggerFactory.getLogger(GoogleBooksClient.class);
-    private static final String BASE_URL = "https://www.googleapis.com/books/v1/volumes";
 
     private final HttpClient httpClient;
     private final ObjectMapper objectMapper;
     private final String apiKey;
+    private final String baseUrl;
 
     public GoogleBooksClient(
             ObjectMapper objectMapper,
-            @Value("${google.books.api-key}") String apiKey) {
+            @Value("${google.books.api-key}") String apiKey,
+            @Value("${google.books.base-url}") String baseUrl) {
         this.objectMapper = objectMapper;
         this.apiKey = apiKey;
+        this.baseUrl = baseUrl;
         this.httpClient = HttpClient.newBuilder()
                 .connectTimeout(Duration.ofSeconds(5))
                 .build();
@@ -85,7 +87,7 @@ public class GoogleBooksClient {
             if (author != null && !author.isBlank()) {
                 query += "+inauthor:" + URLEncoder.encode(author, StandardCharsets.UTF_8);
             }
-            String url = BASE_URL + "?q=" + query
+            String url = baseUrl + "?q=" + query
                     + "&maxResults=10"
                     + "&langRestrict=es"
                     + "&key=" + apiKey;
@@ -106,85 +108,47 @@ public class GoogleBooksClient {
             JsonNode items = objectMapper.readTree(response.body()).path("items");
             if (!items.isArray() || items.isEmpty()) return Optional.empty();
 
-            // Paso 1: language=es + synopsis + imageLinks (datos completos)
+            // Una sola pasada: seleccionar el item con mayor prioridad
+            // 6=es+desc+img, 5=isbn9788+desc+img, 4=es+desc, 3=es+img, 2=es, 1=isbn9788
+            JsonNode bestItem = null;
+            int bestScore = 0;
             for (JsonNode item : items) {
-                JsonNode vi = item.path("volumeInfo");
-                if (titlesMatch(titleEs, vi.path("title").asText(""))
-                        && "es".equals(vi.path("language").asText(""))
-                        && hasDescription(vi)
-                        && !vi.path("imageLinks").isMissingNode()) {
-                    String isbn = extractIsbn(vi);
-                    log.info("Google Books: volumen en español con synopsis e imageLinks para '{}'", titleEs);
-                    return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
+                int score = scoreItem(item.path("volumeInfo"), titleEs);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestItem = item;
                 }
             }
-
-            // Paso 2: ISBN 9788 + synopsis + imageLinks (edición peninsular completa)
-            for (JsonNode item : items) {
-                JsonNode vi = item.path("volumeInfo");
-                String isbn = extractIsbn(vi);
-                if (titlesMatch(titleEs, vi.path("title").asText(""))
-                        && isbn != null && isbn.startsWith("9788")
-                        && hasDescription(vi)
-                        && !vi.path("imageLinks").isMissingNode()) {
-                    log.info("Google Books: volumen ISBN 9788 con synopsis e imageLinks para '{}'", titleEs);
-                    return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
-                }
+            if (bestScore == 0) {
+                log.debug("Google Books: ningún volumen adecuado encontrado para '{}'", titleEs);
+                return Optional.empty();
             }
-
-            // Paso 3: language=es + synopsis (sin cover)
-            for (JsonNode item : items) {
-                JsonNode vi = item.path("volumeInfo");
-                if (titlesMatch(titleEs, vi.path("title").asText(""))
-                        && "es".equals(vi.path("language").asText(""))
-                        && hasDescription(vi)) {
-                    String isbn = extractIsbn(vi);
-                    log.info("Google Books: volumen en español con synopsis (sin imageLinks) para '{}'", titleEs);
-                    return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
-                }
-            }
-
-            // Paso 4: language=es + imageLinks (sin synopsis)
-            for (JsonNode item : items) {
-                JsonNode vi = item.path("volumeInfo");
-                if (titlesMatch(titleEs, vi.path("title").asText(""))
-                        && "es".equals(vi.path("language").asText(""))
-                        && !vi.path("imageLinks").isMissingNode()) {
-                    String isbn = extractIsbn(vi);
-                    log.info("Google Books: volumen en español con imageLinks (sin synopsis) para '{}'", titleEs);
-                    return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
-                }
-            }
-
-            // Paso 5: language=es (cualquier edición en español)
-            for (JsonNode item : items) {
-                JsonNode vi = item.path("volumeInfo");
-                if (titlesMatch(titleEs, vi.path("title").asText(""))
-                        && "es".equals(vi.path("language").asText(""))) {
-                    String isbn = extractIsbn(vi);
-                    log.info("Google Books: volumen en español (sin datos) para '{}'", titleEs);
-                    return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
-                }
-            }
-
-            // Paso 6: ISBN 9788 (último recurso)
-            for (JsonNode item : items) {
-                JsonNode vi = item.path("volumeInfo");
-                String isbn = extractIsbn(vi);
-                if (titlesMatch(titleEs, vi.path("title").asText(""))
-                        && isbn != null && isbn.startsWith("9788")) {
-                    log.info("Google Books: volumen ISBN 9788 (sin datos) para '{}'", titleEs);
-                    return Optional.of(buildEnrichmentDto(item.path("id").asText(null), vi, isbn));
-                }
-            }
-
-            log.debug("Google Books: ningún volumen adecuado encontrado para '{}'", titleEs);
-            return Optional.empty();
+            JsonNode bestVi = bestItem.path("volumeInfo");
+            String bestIsbn = extractIsbn(bestVi);
+            log.info("Google Books: volumen seleccionado (score={}) para '{}'", bestScore, titleEs);
+            return Optional.of(buildEnrichmentDto(bestItem.path("id").asText(null), bestVi, bestIsbn));
 
         } catch (Exception e) {
             log.warn("Error en findBestSpanishVolume para '{}': {}", titleEs, e.getMessage());
             return Optional.empty();
         }
+    }
+
+    private int scoreItem(JsonNode vi, String titleEs) {
+        if (!titlesMatch(titleEs, vi.path("title").asText(""))) return 0;
+        boolean isEs      = "es".equals(vi.path("language").asText(""));
+        boolean hasDesc   = hasDescription(vi);
+        boolean hasImage  = !vi.path("imageLinks").isMissingNode();
+        String isbn       = extractIsbn(vi);
+        boolean isIsbn9788 = isbn != null && isbn.startsWith("9788");
+
+        if (isEs && hasDesc && hasImage)      return 6;
+        if (isIsbn9788 && hasDesc && hasImage) return 5;
+        if (isEs && hasDesc)                  return 4;
+        if (isEs && hasImage)                 return 3;
+        if (isEs)                             return 2;
+        if (isIsbn9788)                       return 1;
+        return 0;
     }
 
     private boolean hasDescription(JsonNode volumeInfo) {
@@ -274,7 +238,7 @@ public class GoogleBooksClient {
             if (author != null && !author.isBlank()) {
                 query += "+inauthor:" + URLEncoder.encode(author, StandardCharsets.UTF_8);
             }
-            String url = BASE_URL + "?q=" + query
+            String url = baseUrl + "?q=" + query
                     + "&maxResults=5"
                     + "&langRestrict=es"
                     + "&key=" + apiKey;
@@ -318,7 +282,7 @@ public class GoogleBooksClient {
             if (author != null && !author.isBlank()) {
                 query += "+inauthor:" + URLEncoder.encode(author, StandardCharsets.UTF_8);
             }
-            String url = BASE_URL + "?q=" + query
+            String url = baseUrl + "?q=" + query
                     + "&maxResults=1"
                     + (langRestrict != null ? "&langRestrict=" + langRestrict : "")
                     + "&key=" + apiKey;

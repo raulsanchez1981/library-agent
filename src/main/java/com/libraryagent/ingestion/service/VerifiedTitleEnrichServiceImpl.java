@@ -6,7 +6,7 @@ import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
 import com.libraryagent.ingestion.entity.GenreEntity;
 import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,7 +33,7 @@ public class VerifiedTitleEnrichServiceImpl implements VerifiedTitleEnrichServic
     @Transactional
     public VerifiedTitleDetailDto enrichFromCdl(UUID id, String casaDelLibroUrl) {
         VerifiedTitleEntity vt = verifiedTitleRepository.findByIdWithGenres(id)
-                .orElseThrow(() -> new EntityNotFoundException("Título verificado no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("Título verificado no encontrado: " + id));
 
         CdlEnrichmentResultDto result = scraperService.scrape(casaDelLibroUrl);
 
@@ -61,7 +61,7 @@ public class VerifiedTitleEnrichServiceImpl implements VerifiedTitleEnrichServic
     @Transactional
     public VerifiedTitleDetailDto enrichFromGoogleBooks(UUID id, GoogleBooksEnrichmentDto data) {
         VerifiedTitleEntity vt = verifiedTitleRepository.findByIdWithGenres(id)
-                .orElseThrow(() -> new EntityNotFoundException("Título verificado no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("Título verificado no encontrado: " + id));
 
         vt.setGoogleBooksId(data.googleBooksId());
         vt.setCoverUrl(data.coverUrl());
@@ -90,7 +90,7 @@ public class VerifiedTitleEnrichServiceImpl implements VerifiedTitleEnrichServic
     @Transactional
     public VerifiedTitleDetailDto confirm(UUID id) {
         VerifiedTitleEntity vt = verifiedTitleRepository.findByIdWithGenres(id)
-                .orElseThrow(() -> new EntityNotFoundException("Título verificado no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("Título verificado no encontrado: " + id));
 
         vt.setCdlAutoSearchStatus(CdlAutoSearchStatus.CONFIRMED);
 

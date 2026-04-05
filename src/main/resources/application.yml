@@ -54,6 +54,10 @@ anthropic:
 google:
   books:
     api-key: ${GOOGLE_BOOKS_API_KEY:}
+    base-url: https://www.googleapis.com/books/v1/volumes
+
+open-library:
+  base-url: https://openlibrary.org
 
 recommendation:
   claude-model: ${RECOMMENDATION_CLAUDE_MODEL:claude-sonnet-4-6}

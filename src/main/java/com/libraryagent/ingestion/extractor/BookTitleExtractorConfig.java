@@ -1,8 +1,7 @@
 package com.libraryagent.ingestion.extractor;
 
+import com.anthropic.client.AnthropicClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.libraryagent.ingestion.PullpushProperties;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -10,8 +9,8 @@ import org.springframework.context.annotation.Configuration;
 class BookTitleExtractorConfig {
 
     @Bean
-    ClaudeGateway claudeGateway(@Value("${anthropic.api-key}") String apiKey) {
-        return new AnthropicClaudeGateway(apiKey);
+    ClaudeGateway claudeGateway(AnthropicClient anthropicClient) {
+        return new AnthropicClaudeGateway(anthropicClient);
     }
 
     @Bean

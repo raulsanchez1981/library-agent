@@ -5,7 +5,7 @@ import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
 import com.libraryagent.ingestion.entity.GenreEntity;
 import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -97,14 +97,14 @@ class VerifiedTitleEnrichServiceTest {
     }
 
     @Test
-    void shouldThrowEntityNotFoundExceptionWhenIdDoesNotExist() {
+    void shouldThrowLibraryAgentExceptionWhenIdDoesNotExist() {
         // Given
         UUID id = UUID.randomUUID();
         when(verifiedTitleRepository.findByIdWithGenres(id)).thenReturn(Optional.empty());
 
         // When / Then
         assertThatThrownBy(() -> service.enrichFromCdl(id, "https://www.casadellibro.com/libro"))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(LibraryAgentException.class)
                 .hasMessageContaining(id.toString());
     }
 }

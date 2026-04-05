@@ -1,21 +1,22 @@
 package com.libraryagent.ingestion.service;
 
 import com.anthropic.client.AnthropicClient;
-import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.anthropic.models.messages.MessageCreateParams;
 import com.anthropic.models.messages.Model;
 import com.anthropic.models.messages.TextBlock;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.dto.CdlEnrichmentResultDto;
+import com.libraryagent.shared.util.MarkdownUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,62 +31,25 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
             "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 
-    private static final String EXTRACT_PROMPT = """
-            Analiza estos datos extraídos de una página de Casa del Libro y devuelve \
-            SOLO un JSON con esta estructura exacta (sin markdown, sin explicaciones):
-            {
-              "coverUrl": "URL completa de la imagen de portada",
-              "synopsis": "sinopsis completa del libro",
-              "genres": ["género1", "género2"],
-              "technicalSheet": {
-                "Editorial": "...",
-                "ISBN": "...",
-                "Número de páginas": "...",
-                "Año de edición": "YYYY",
-                "Encuadernación": "...",
-                "Idioma": "...",
-                "Dimensiones": "...",
-                "Peso": "..."
-              }
-            }
-
-            Reglas:
-            - coverUrl: usa image.contentUrl del JSON-LD Book si existe; si la URL contiene /t1/ o \
-            /t5/ en el path, sustitúyelo por /s5/ y cambia la extensión a .webp; \
-            si no hay JSON-LD usa og:image aplicando la misma transformación
-            - synopsis: usa el texto de .resumen-content si está disponible; si no, \
-            usa description del JSON-LD Book
-            - genres: extrae del itemListElement del BreadcrumbList JSON-LD, \
-            omite los elementos con name "Home" y "Libros"
-            - technicalSheet: extrae de JSON-LD (workExample[0] para isbn/numberOfPages/\
-            datePublished/bookFormat/inLanguage; publisher.name para Editorial; \
-            size para Dimensiones; materialExtent para Peso); \
-            para Año de edición usa solo los 4 primeros dígitos de datePublished; \
-            para Encuadernación extrae la parte final de la URL de bookFormat
-            - Omite de technicalSheet los campos sin valor
-            - Si no hay datos para un campo raíz, usa null para strings, [] para arrays
-            - Responde SOLO con el JSON
-
-            Datos extraídos de la página:
-
-            === JSON-LD ===
-            %s
-
-            === Texto de sinopsis (.resumen-content) ===
-            %s
-
-            === og:image ===
-            %s
-            """;
-
     private final ObjectMapper objectMapper;
     private final AnthropicClient anthropicClient;
+    private final String extractPrompt;
 
     public CasaDelLibroScraperServiceImpl(
             ObjectMapper objectMapper,
-            @Value("${anthropic.api-key}") String apiKey) {
+            AnthropicClient anthropicClient) {
         this.objectMapper = objectMapper;
-        this.anthropicClient = AnthropicOkHttpClient.builder().apiKey(apiKey).build();
+        this.anthropicClient = anthropicClient;
+        this.extractPrompt = loadPrompt("scrape-casa-del-libro.txt");
+    }
+
+    private static String loadPrompt(String filename) {
+        try {
+            return new ClassPathResource("prompts/" + filename)
+                    .getContentAsString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new IllegalStateException("No se puede cargar prompts/" + filename, e);
+        }
     }
 
     @Override
@@ -109,7 +73,7 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
         String synopsis = document.select(".resumen-content").text();
         String ogImage = document.select("meta[property=og:image]").attr("content");
 
-        String prompt = EXTRACT_PROMPT.formatted(ldJson, synopsis, ogImage);
+        String prompt = extractPrompt.formatted(ldJson, synopsis, ogImage);
         String json = stripMarkdown(callClaude(prompt));
         return parseResponse(json);
     }
@@ -140,15 +104,7 @@ public class CasaDelLibroScraperServiceImpl implements CasaDelLibroScraperServic
 
     private String stripMarkdown(String response) {
         log.debug("Respuesta cruda de Claude: {}", response);
-        String trimmed = response.trim();
-        // Eliminar bloque de código markdown triple-backtick si existe
-        if (trimmed.startsWith("```")) {
-            int firstNewline = trimmed.indexOf('\n');
-            int lastFence = trimmed.lastIndexOf("```");
-            if (firstNewline > 0 && lastFence > firstNewline) {
-                trimmed = trimmed.substring(firstNewline + 1, lastFence).trim();
-            }
-        }
+        String trimmed = MarkdownUtils.stripFences(response);
         // Extraer entre el primer '{' y el último '}' para ignorar texto extra
         int start = trimmed.indexOf('{');
         int end = trimmed.lastIndexOf('}');

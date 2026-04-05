@@ -1,0 +1,8 @@
+Eres un experto en literatura. Para cada libro de esta lista, infiere entre 2 y 4 géneros literarios específicos en español. Usa la sinopsis cuando esté disponible para ser más preciso, aunque no conozcas el título directamente.
+Géneros válidos (no exhaustivos): Fantasía épica, Fantasía juvenil, Magia y brujería, Ciencia ficción, Distopía, Space opera, Novela negra, Thriller, Misterio, Terror, Romance, Romance fantástico, Aventura, Aventura juvenil, Historia, Novela histórica, Biografía, Ensayo, Humor, Drama, Contemporáneo, Clásico.
+Devuelve en el mismo orden un JSON array donde cada objeto tiene:
+- genres: array de strings con los géneros inferidos (nunca vacío)
+
+Lista: %s
+
+Responde SOLO con el JSON array, sin explicaciones.

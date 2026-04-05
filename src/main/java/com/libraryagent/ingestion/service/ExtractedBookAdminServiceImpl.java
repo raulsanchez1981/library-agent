@@ -10,7 +10,7 @@ import com.libraryagent.ingestion.model.ExtractedBookEntity;
 import com.libraryagent.ingestion.repository.AuthorRepository;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -28,16 +28,19 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     private final AuthorRepository authorRepository;
     private final VerifiedTitleRepository verifiedTitleRepository;
     private final GenreEnrichmentService genreEnrichmentService;
+    private final BookLinkingService bookLinkingService;
 
     public ExtractedBookAdminServiceImpl(
             ExtractedBookRepository repository,
             AuthorRepository authorRepository,
             VerifiedTitleRepository verifiedTitleRepository,
-            GenreEnrichmentService genreEnrichmentService) {
+            GenreEnrichmentService genreEnrichmentService,
+            BookLinkingService bookLinkingService) {
         this.repository = repository;
         this.authorRepository = authorRepository;
         this.verifiedTitleRepository = verifiedTitleRepository;
         this.genreEnrichmentService = genreEnrichmentService;
+        this.bookLinkingService = bookLinkingService;
     }
 
     @Override
@@ -56,14 +59,14 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     public ExtractedBookAdminDto findById(UUID id) {
         return repository.findById(id)
                 .map(ExtractedBookAdminDto::fromEntity)
-                .orElseThrow(() -> new EntityNotFoundException("ExtractedBook no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("ExtractedBook no encontrado: " + id));
     }
 
     @Override
     @Transactional
     public ExtractedBookAdminDto update(UUID id, UpdateExtractedBookRequest request) {
         ExtractedBookEntity entity = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("ExtractedBook no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("ExtractedBook no encontrado: " + id));
 
         if (request.titleEs() != null) {
             entity.setTitleEs(request.titleEs());
@@ -127,7 +130,7 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     @Transactional
     public void discard(UUID id) {
         ExtractedBookEntity entity = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("ExtractedBook no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("ExtractedBook no encontrado: " + id));
         entity.setDiscarded(true);
         repository.save(entity);
     }
@@ -135,41 +138,7 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     @Override
     @Transactional
     public void linkUnverifiedBooks() {
-        // 1. Asignar verifiedTitle a libros que coincidan por titleEs (case-insensitive)
-        List<ExtractedBookEntity> sinTituloVerificado = repository.findByVerifiedTitleIsNullAndTitleEsIsNotNull();
-        List<VerifiedTitleEntity> todosVerificados = verifiedTitleRepository.findAll();
-
-        sinTituloVerificado.forEach(book -> todosVerificados.stream()
-                .filter(vt -> vt.getName().equalsIgnoreCase(book.getTitleEs()))
-                .findFirst()
-                .ifPresent(vt -> {
-                    book.setVerifiedTitle(vt);
-                    repository.save(book);
-                }));
-
-        // 2. Vincular autores verificados a libros no-VERIFIED donde coincida authorCorrected
-        List<AuthorEntity> autoresVerificados = authorRepository.findByVerifiedTrue();
-        if (autoresVerificados.isEmpty()) {
-            return;
-        }
-
-        List<ExtractedBookEntity> candidatos = repository.findByConfidenceNotAndAuthorCorrectedIsNotNull(Confidence.VERIFIED);
-        candidatos.forEach(book -> {
-            List<String> nombresBook = AuthorNameParser.parse(book.getAuthorCorrected()).stream()
-                    .map(String::toLowerCase)
-                    .toList();
-
-            autoresVerificados.forEach(autor -> {
-                boolean yaVinculado = book.getAuthors().stream()
-                        .anyMatch(a -> a.getId().equals(autor.getId()));
-                boolean nombreCoincide = nombresBook.contains(autor.getName().toLowerCase());
-
-                if (!yaVinculado && nombreCoincide) {
-                    book.getAuthors().add(autor);
-                    repository.save(book);
-                }
-            });
-        });
+        bookLinkingService.linkUnverifiedBooks();
     }
 
     // --- Specifications ---

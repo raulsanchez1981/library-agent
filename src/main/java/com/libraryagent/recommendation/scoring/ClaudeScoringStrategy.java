@@ -11,6 +11,7 @@ import com.libraryagent.recommendation.model.ScoringResult;
 import com.libraryagent.recommendation.model.UserPreferences;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.libraryagent.shared.util.MarkdownUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
@@ -75,7 +76,7 @@ public final class ClaudeScoringStrategy implements BookScoringStrategy {
 
     private ScoringResult parseResponse(String rawResponse) {
         try {
-            String clean = stripMarkdownFences(rawResponse);
+            String clean = MarkdownUtils.stripFences(rawResponse);
             JsonNode node = objectMapper.readTree(clean);
             int score = node.path("score").asInt();
             String reasoning = node.path("reasoning").asText();
@@ -83,14 +84,6 @@ public final class ClaudeScoringStrategy implements BookScoringStrategy {
         } catch (Exception e) {
             throw new IllegalStateException("Error al parsear respuesta de Claude: " + e.getMessage(), e);
         }
-    }
-
-    private String stripMarkdownFences(String raw) {
-        String trimmed = raw.strip();
-        if (trimmed.startsWith("```")) {
-            trimmed = trimmed.replaceAll("```json\\s*", "").replaceAll("```", "").strip();
-        }
-        return trimmed;
     }
 
     private String resolveTitle(ExtractedBookEntity book) {

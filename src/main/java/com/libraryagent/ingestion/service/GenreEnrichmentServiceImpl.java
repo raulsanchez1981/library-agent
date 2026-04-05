@@ -3,6 +3,7 @@ package com.libraryagent.ingestion.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.entity.GenreEntity;
+import com.libraryagent.shared.util.MarkdownUtils;
 import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.extractor.ClaudeGateway;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
@@ -143,7 +144,7 @@ public class GenreEnrichmentServiceImpl implements GenreEnrichmentService {
     private List<List<String>> callHaikuAndParse(String booksJson) {
         try {
             String rawJson = claudeGateway.inferGenresBatchJson(booksJson);
-            String clean = stripMarkdownFences(rawJson);
+            String clean = MarkdownUtils.stripFences(rawJson);
             JsonNode array = objectMapper.readTree(clean);
             if (!array.isArray()) return List.of();
 
@@ -166,14 +167,6 @@ public class GenreEnrichmentServiceImpl implements GenreEnrichmentService {
             log.warn("Error al parsear respuesta de inferencia de géneros: {}", e.getMessage());
             return List.of();
         }
-    }
-
-    private String stripMarkdownFences(String raw) {
-        String trimmed = raw.strip();
-        if (trimmed.startsWith("```")) {
-            trimmed = trimmed.replaceAll("```json\\s*", "").replaceAll("```", "").strip();
-        }
-        return trimmed;
     }
 
     private record BookGenreInput(String title, String author, String synopsis) {}

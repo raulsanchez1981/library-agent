@@ -1,0 +1,7 @@
+Eres un experto en literatura mundial. Para cada libro de esta lista, proporciona el nombre del autor principal si lo conoces.
+Devuelve en el mismo orden un JSON array donde cada objeto tiene:
+- author: nombre completo del autor (null si no conoces el libro o no tienes certeza)
+
+Lista: %s
+
+Responde SOLO con el JSON array, sin explicaciones.

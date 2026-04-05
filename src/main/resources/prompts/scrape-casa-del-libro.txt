@@ -1,0 +1,36 @@
+Analiza estos datos extraídos de una página de Casa del Libro y devuelve SOLO un JSON con esta estructura exacta (sin markdown, sin explicaciones):
+{
+  "coverUrl": "URL completa de la imagen de portada",
+  "synopsis": "sinopsis completa del libro",
+  "genres": ["género1", "género2"],
+  "technicalSheet": {
+    "Editorial": "...",
+    "ISBN": "...",
+    "Número de páginas": "...",
+    "Año de edición": "YYYY",
+    "Encuadernación": "...",
+    "Idioma": "...",
+    "Dimensiones": "...",
+    "Peso": "..."
+  }
+}
+
+Reglas:
+- coverUrl: usa image.contentUrl del JSON-LD Book si existe; si la URL contiene /t1/ o /t5/ en el path, sustitúyelo por /s5/ y cambia la extensión a .webp; si no hay JSON-LD usa og:image aplicando la misma transformación
+- synopsis: usa el texto de .resumen-content si está disponible; si no, usa description del JSON-LD Book
+- genres: extrae del itemListElement del BreadcrumbList JSON-LD, omite los elementos con name "Home" y "Libros"
+- technicalSheet: extrae de JSON-LD (workExample[0] para isbn/numberOfPages/datePublished/bookFormat/inLanguage; publisher.name para Editorial; size para Dimensiones; materialExtent para Peso); para Año de edición usa solo los 4 primeros dígitos de datePublished; para Encuadernación extrae la parte final de la URL de bookFormat
+- Omite de technicalSheet los campos sin valor
+- Si no hay datos para un campo raíz, usa null para strings, [] para arrays
+- Responde SOLO con el JSON
+
+Datos extraídos de la página:
+
+=== JSON-LD ===
+%s
+
+=== Texto de sinopsis (.resumen-content) ===
+%s
+
+=== og:image ===
+%s

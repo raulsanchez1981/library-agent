@@ -1,5 +1,6 @@
 package com.libraryagent.ingestion.sources;
 
+import com.anthropic.client.okhttp.AnthropicOkHttpClient;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.PullpushProperties;
 import com.libraryagent.ingestion.extractor.AnthropicClaudeGateway;
@@ -32,7 +33,9 @@ class BookTitleExtractorLiveTest {
 
         PullpushProperties properties = new PullpushProperties(Map.of("Fantasy", "fantasía épica"), 3);
         PullpushApiClient pullpushClient = new RestClientPullpushApiClient(properties, RestClient.builder());
-        BookTitleExtractor extractor = new BookTitleExtractor(new AnthropicClaudeGateway(apiKey), new ObjectMapper());
+        BookTitleExtractor extractor = new BookTitleExtractor(
+                new AnthropicClaudeGateway(AnthropicOkHttpClient.builder().apiKey(apiKey).build()),
+                new ObjectMapper());
 
         List<PullpushPost> posts = pullpushClient.fetchPosts("Fantasy");
 
