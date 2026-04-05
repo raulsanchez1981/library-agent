@@ -27,14 +27,17 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     private final ExtractedBookRepository repository;
     private final AuthorRepository authorRepository;
     private final VerifiedTitleRepository verifiedTitleRepository;
+    private final GenreEnrichmentService genreEnrichmentService;
 
     public ExtractedBookAdminServiceImpl(
             ExtractedBookRepository repository,
             AuthorRepository authorRepository,
-            VerifiedTitleRepository verifiedTitleRepository) {
+            VerifiedTitleRepository verifiedTitleRepository,
+            GenreEnrichmentService genreEnrichmentService) {
         this.repository = repository;
         this.authorRepository = authorRepository;
         this.verifiedTitleRepository = verifiedTitleRepository;
+        this.genreEnrichmentService = genreEnrichmentService;
     }
 
     @Override
@@ -42,7 +45,8 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     public Page<ExtractedBookAdminDto> findAll(String search, Confidence confidence, Boolean enriched, Pageable pageable) {
         Specification<ExtractedBookEntity> spec = searchSpec(search)
                 .and(confidenceSpec(confidence))
-                .and(enrichedSpec(enriched));
+                .and(enrichedSpec(enriched))
+                .and(notDiscardedSpec());
 
         return repository.findAll(spec, pageable).map(ExtractedBookAdminDto::fromEntity);
     }
@@ -111,7 +115,21 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
         // Vincular libros no verificados que coincidan con los títulos/autores ya verificados
         linkUnverifiedBooks();
 
+        // Enriquecer géneros del VerifiedTitle de forma asíncrona
+        if (entity.getVerifiedTitle() != null) {
+            genreEnrichmentService.enrichSingle(entity.getVerifiedTitle());
+        }
+
         return ExtractedBookAdminDto.fromEntity(entity);
+    }
+
+    @Override
+    @Transactional
+    public void discard(UUID id) {
+        ExtractedBookEntity entity = repository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("ExtractedBook no encontrado: " + id));
+        entity.setDiscarded(true);
+        repository.save(entity);
     }
 
     @Override
@@ -180,5 +198,9 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
             return (root, query, cb) -> null;
         }
         return (root, query, cb) -> cb.equal(root.get("enriched"), enriched);
+    }
+
+    private Specification<ExtractedBookEntity> notDiscardedSpec() {
+        return (root, query, cb) -> cb.isFalse(root.get("discarded"));
     }
 }

@@ -34,4 +34,15 @@ public interface VerifiedTitleRepository extends JpaRepository<VerifiedTitleEnti
     @Query("SELECT vt FROM VerifiedTitleEntity vt LEFT JOIN FETCH vt.genres")
     List<VerifiedTitleEntity> findAllWithGenres();
 
+    /** Títulos verificados de un autor concreto, ordenados por nombre */
+    @Query(value = """
+            SELECT DISTINCT vt.* FROM verified_titles vt
+            JOIN extracted_books eb ON eb.verified_title_id = vt.id
+            JOIN book_authors ba ON ba.book_id = eb.id
+            WHERE ba.author_id = :authorId
+            AND eb.confidence = 'VERIFIED'
+            ORDER BY vt.name
+            """, nativeQuery = true)
+    List<VerifiedTitleEntity> findAllByAuthorId(@Param("authorId") UUID authorId);
+
 }

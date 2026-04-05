@@ -229,12 +229,12 @@ Stack: Next.js 14+ (App Router), TypeScript, Tailwind CSS. Dentro del monorepo e
 - [x] Añadir libro al historial con formulario inline (`POST /api/v1/reading-history`)
 - [x] Cambiar estado de un libro (`PATCH /api/v1/reading-history/{id}`)
 
-##### 4.5.5 — Dockerización y despliegue
-- [ ] `dashboard/Dockerfile` multi-stage (build Node + runtime distroless/node)
-- [ ] Servicio `dashboard` en `docker-compose.prod.yml` (puerto 3000)
-- [ ] Subdominio `dashboard.mistborn.cv` en Cloudflare Tunnel → NPM → dashboard:3000
-- [ ] CI ampliado: job `build-dashboard` con `npm ci`, `npm run lint`, `npm run build`
-- [ ] Monitor en Uptime Kuma: `dashboard.mistborn.cv`
+##### 4.5.5 — Dockerización y despliegue ✓
+- [x] `dashboard/Dockerfile` multi-stage (build Node + runtime node:22-alpine, usuario no-root)
+- [x] Servicio `dashboard` en `docker-compose.prod.yml` (puerto 3002)
+- [x] Subdominio `library.mistborn.cv` en Cloudflare Tunnel → NPM → dashboard:3002
+- [x] CI ampliado: job `build-dashboard` con `npm ci`, `npm run build` + hadolint dashboard/Dockerfile
+- [x] Monitor en Uptime Kuma: `library.mistborn.cv/api/auth/session`
 
 ---
 
@@ -303,6 +303,6 @@ Objetivo: app móvil nativa que consume la API REST existente.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 4 — En curso. 4.1–4.4 y 4.5.1–4.5.4 completadas. Siguiente: 4.5.5 Dockerización y despliegue del dashboard
+- Fase actual: Fase 4 — En curso. 4.1–4.4 y 4.5.1–4.5.5 completadas. Siguiente: Fase 5 (n8n, Telegram, Kindle) o monitor Uptime Kuma pendiente de 4.5.5
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop

@@ -57,6 +57,23 @@ export default async function BookDetailPage({
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-semibold text-zinc-900 leading-snug">{book.name}</h1>
 
+          {/* Autores */}
+          {book.authors.length > 0 && (
+            <div className="mt-1.5 flex flex-wrap gap-x-1.5 gap-y-0.5">
+              {book.authors.map((author, i) => (
+                <span key={author.id} className="text-sm text-zinc-500">
+                  <Link
+                    href={`/autores/${author.id}`}
+                    className="hover:text-violet-700 hover:underline transition-colors"
+                  >
+                    {author.name}
+                  </Link>
+                  {i < book.authors.length - 1 && ","}
+                </span>
+              ))}
+            </div>
+          )}
+
           {/* Géneros */}
           {book.genres.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-1.5">

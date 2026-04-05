@@ -28,6 +28,15 @@ public class AuthorEntity {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "photo_url", columnDefinition = "TEXT")
+    private String photoUrl;
+
+    @Column(name = "bio", columnDefinition = "TEXT")
+    private String bio;
+
+    @Column(name = "open_library_olid", length = 64)
+    private String openLibraryOlid;
+
     public AuthorEntity(String name) {
         this.name = name;
     }

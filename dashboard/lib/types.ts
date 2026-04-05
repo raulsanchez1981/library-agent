@@ -25,6 +25,7 @@ export interface ExtractedBookAdminDto {
   synopsis: string | null;
   cdlEnriched: boolean;
   cdlAutoSearchStatus: CdlAutoSearchStatus | null;
+  discarded: boolean;
 }
 
 export interface UpdateExtractedBookRequest {
@@ -65,6 +66,11 @@ export interface GenreDto {
   name: string;
 }
 
+export interface AuthorRefDto {
+  id: string;
+  name: string;
+}
+
 export interface VerifiedTitleDetailDto {
   id: string;
   name: string;
@@ -73,11 +79,34 @@ export interface VerifiedTitleDetailDto {
   technicalSheet: string | null;
   casaDelLibroUrl: string | null;
   genres: GenreDto[];
+  authors: AuthorRefDto[];
   cdlAutoSearchStatus: CdlAutoSearchStatus | null;
   publisher: string | null;
   publishedDate: string | null;
   pageCount: number | null;
   isbn: string | null;
+}
+
+export interface AutorDto {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  bookCount: number;
+}
+
+export interface AutorBookDto {
+  id: string;
+  name: string;
+  coverUrl: string | null;
+}
+
+export interface AutorDetailDto {
+  id: string;
+  name: string;
+  photoUrl: string | null;
+  bio: string | null;
+  openLibraryOlid: string | null;
+  books: AutorBookDto[];
 }
 
 export interface SpringPage<T> {

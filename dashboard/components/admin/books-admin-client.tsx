@@ -3,7 +3,7 @@
 import { useState, useTransition, useEffect, useRef } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { updateAdminBook } from "@/app/actions/admin-books";
+import { updateAdminBook, discardBook } from "@/app/actions/admin-books";
 import { cdlAutoSearchAll, enrichFromCdl, reEnrichGoogleBooks } from "@/app/actions/biblioteca";
 import type {
   Confidence,
@@ -564,6 +564,7 @@ function EditBookModal({
 }) {
   const [isPending, startTransition] = useTransition();
   const [isEnriching, startEnrichTransition] = useTransition();
+  const [isDiscarding, startDiscardTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [enrichError, setEnrichError] = useState<string | null>(null);
   const [enrichSuccess, setEnrichSuccess] = useState(false);
@@ -596,6 +597,17 @@ function EditBookModal({
         onSaved();
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error desconocido");
+      }
+    });
+  }
+
+  function handleDiscard() {
+    startDiscardTransition(async () => {
+      try {
+        await discardBook(book.id);
+        onSaved();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Error al descartar");
       }
     });
   }
@@ -768,21 +780,31 @@ function EditBookModal({
 
           {error && <p className="text-sm text-red-600">{error}</p>}
 
-          <div className="flex justify-end gap-3 pt-1">
+          <div className="flex items-center justify-between pt-1">
             <button
               type="button"
-              onClick={onClose}
-              className="rounded-lg border border-zinc-200 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+              onClick={handleDiscard}
+              disabled={isDiscarding}
+              className="rounded-lg border border-red-200 px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 transition-colors"
             >
-              Cancelar
+              {isDiscarding ? "Descartando…" : "Descartar libro"}
             </button>
-            <button
-              type="submit"
-              disabled={isPending}
-              className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-700 disabled:opacity-50 transition-colors"
-            >
-              {isPending ? "Guardando…" : "Guardar y verificar"}
-            </button>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="rounded-lg border border-zinc-200 px-4 py-2 text-sm text-zinc-600 hover:bg-zinc-50 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isPending}
+                className="rounded-lg bg-zinc-900 px-4 py-2 text-sm text-white hover:bg-zinc-700 disabled:opacity-50 transition-colors"
+              >
+                {isPending ? "Guardando…" : "Guardar y verificar"}
+              </button>
+            </div>
           </div>
         </form>
       </div>

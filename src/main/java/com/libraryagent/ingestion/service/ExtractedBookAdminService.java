@@ -16,5 +16,7 @@ public interface ExtractedBookAdminService {
 
     ExtractedBookAdminDto update(UUID id, UpdateExtractedBookRequest request);
 
+    void discard(UUID id);
+
     void linkUnverifiedBooks();
 }

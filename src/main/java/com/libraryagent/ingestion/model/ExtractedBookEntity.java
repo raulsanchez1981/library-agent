@@ -60,6 +60,9 @@ public class ExtractedBookEntity {
     @Column(name = "enriched", nullable = false)
     private boolean enriched;
 
+    @Column(name = "discarded", nullable = false)
+    private boolean discarded;
+
     @Column(name = "enriched_at")
     private Instant enrichedAt;
 

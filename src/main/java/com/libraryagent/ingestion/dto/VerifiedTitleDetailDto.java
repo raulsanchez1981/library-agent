@@ -6,6 +6,7 @@ import com.libraryagent.ingestion.service.CdlAutoSearchStatus;
 import java.util.List;
 import java.util.UUID;
 
+
 public record VerifiedTitleDetailDto(
         UUID id,
         String name,
@@ -14,6 +15,7 @@ public record VerifiedTitleDetailDto(
         String technicalSheet,
         String casaDelLibroUrl,
         List<GenreDto> genres,
+        List<AuthorRefDto> authors,
         CdlAutoSearchStatus cdlAutoSearchStatus,
         String publisher,
         String publishedDate,
@@ -21,7 +23,7 @@ public record VerifiedTitleDetailDto(
         String isbn
 ) {
 
-    public static VerifiedTitleDetailDto fromEntity(VerifiedTitleEntity entity) {
+    public static VerifiedTitleDetailDto fromEntity(VerifiedTitleEntity entity, List<AuthorRefDto> authors) {
         List<GenreDto> genreDtos = entity.getGenres().stream()
                 .map(GenreDto::fromEntity)
                 .toList();
@@ -34,6 +36,7 @@ public record VerifiedTitleDetailDto(
                 entity.getTechnicalSheet(),
                 entity.getCasaDelLibroUrl(),
                 genreDtos,
+                authors,
                 entity.getCdlAutoSearchStatus(),
                 entity.getPublisher(),
                 entity.getPublishedDate(),
