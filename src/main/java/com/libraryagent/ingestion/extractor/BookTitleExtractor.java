@@ -3,6 +3,7 @@ package com.libraryagent.ingestion.extractor;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.libraryagent.ingestion.model.RawMention;
+import com.libraryagent.shared.util.MarkdownUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,7 +34,7 @@ public class BookTitleExtractor {
 
     private List<ExtractedBookResult> parseBooks(String rawJson) {
         try {
-            JsonNode array = objectMapper.readTree(stripMarkdownFences(rawJson));
+            JsonNode array = objectMapper.readTree(MarkdownUtils.stripFences(rawJson));
             if (!array.isArray()) return List.of();
 
             List<ExtractedBookResult> results = new ArrayList<>();
@@ -53,11 +54,4 @@ public class BookTitleExtractor {
         }
     }
 
-    private String stripMarkdownFences(String raw) {
-        String trimmed = raw.strip();
-        if (trimmed.startsWith("```")) {
-            trimmed = trimmed.replaceAll("```json\\s*", "").replaceAll("```", "").strip();
-        }
-        return trimmed;
-    }
 }

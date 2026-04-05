@@ -1,0 +1,9 @@
+Extrae todos los libros mencionados en el siguiente texto.
+Devuelve SOLO un array JSON donde cada objeto tiene:
+- title: título del libro tal como se menciona
+- author: autor si se menciona explícitamente en el texto, null si no
+- isSaga: true si es una saga o serie completa, false si es un libro individual
+
+Si no hay libros, devuelve [].
+
+Texto: %s

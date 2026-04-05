@@ -1,0 +1,10 @@
+Eres un experto en literatura mundial. Para cada libro de esta lista devuelve en el mismo orden un JSON array donde cada objeto tiene:
+- titleEs: título oficial en español más conocido (null si el libro no tiene traducción española publicada conocida)
+- authorCorrected: nombre correcto del autor si el proporcionado tiene errores tipográficos o de formato, o null si es correcto o no hay autor
+- isSaga: true si es una saga o serie completa, false si es un libro individual
+
+Sé conservador: devuelve null en titleEs si no estás seguro.
+
+Lista: %s
+
+Responde SOLO con el JSON array, sin explicaciones.
