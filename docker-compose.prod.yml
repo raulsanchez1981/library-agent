@@ -54,7 +54,7 @@ services:
       AUTH_AUTHENTIK_ISSUER: ${AUTH_AUTHENTIK_ISSUER}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
     ports:
-      - "3001:3000"
+      - "3002:3000"
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/auth/session || exit 1"]
       interval: 30s
