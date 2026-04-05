@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
@@ -19,7 +20,6 @@ import java.util.stream.Collectors;
 public class RestClientOpenLibraryClient implements OpenLibraryClient {
 
     private static final Logger log = LoggerFactory.getLogger(RestClientOpenLibraryClient.class);
-    private static final String BASE_URL = "https://openlibrary.org";
 
     /**
      * Umbral mínimo de similitud para aceptar un resultado de OL como válido.
@@ -33,8 +33,10 @@ public class RestClientOpenLibraryClient implements OpenLibraryClient {
 
     private final RestClient restClient;
 
-    public RestClientOpenLibraryClient(RestClient.Builder builder) {
-        this.restClient = builder.baseUrl(BASE_URL).build();
+    public RestClientOpenLibraryClient(
+            RestClient.Builder builder,
+            @Value("${open-library.base-url}") String baseUrl) {
+        this.restClient = builder.baseUrl(baseUrl).build();
     }
 
     /**

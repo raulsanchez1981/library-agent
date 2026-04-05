@@ -1,5 +1,6 @@
 package com.libraryagent.ingestion.service;
 
+import com.libraryagent.ingestion.client.GoogleBooksClient;
 import com.libraryagent.ingestion.dto.GoogleBooksEnrichmentDto;
 import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.model.ExtractedBookEntity;
@@ -24,19 +25,19 @@ public class CdlAutoSearchServiceImpl implements CdlAutoSearchService {
     private static final Logger log = LoggerFactory.getLogger(CdlAutoSearchServiceImpl.class);
     private static final long DELAY_BETWEEN_SEARCHES_MS = 2_000;
 
-    private final GoogleBooksEnrichService googleBooksEnrichService;
+    private final GoogleBooksClient googleBooksClient;
     private final VerifiedTitleEnrichService enrichService;
     private final VerifiedTitleRepository verifiedTitleRepository;
     private final ExtractedBookRepository extractedBookRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     public CdlAutoSearchServiceImpl(
-            GoogleBooksEnrichService googleBooksEnrichService,
+            GoogleBooksClient googleBooksClient,
             VerifiedTitleEnrichService enrichService,
             VerifiedTitleRepository verifiedTitleRepository,
             ExtractedBookRepository extractedBookRepository,
             ApplicationEventPublisher eventPublisher) {
-        this.googleBooksEnrichService = googleBooksEnrichService;
+        this.googleBooksClient = googleBooksClient;
         this.enrichService = enrichService;
         this.verifiedTitleRepository = verifiedTitleRepository;
         this.extractedBookRepository = extractedBookRepository;
@@ -107,7 +108,7 @@ public class CdlAutoSearchServiceImpl implements CdlAutoSearchService {
         String author = book.getAuthorCorrected() != null ? book.getAuthorCorrected() : book.getAuthor();
 
         Optional<GoogleBooksEnrichmentDto> enrichmentData =
-                googleBooksEnrichService.findEnrichmentData(titleEs, author);
+                googleBooksClient.findBestSpanishVolume(titleEs, author);
 
         if (enrichmentData.isPresent()) {
             enrichService.enrichFromGoogleBooks(vtId, enrichmentData.get());

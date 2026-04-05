@@ -19,7 +19,7 @@ class GoogleBooksClientTest {
 
     @BeforeEach
     void setUp() {
-        client = new GoogleBooksClient(new ObjectMapper(), "test-api-key");
+        client = new GoogleBooksClient(new ObjectMapper(), "test-api-key", "https://www.googleapis.com/books/v1/volumes");
     }
 
     @Test

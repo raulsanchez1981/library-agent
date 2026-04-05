@@ -238,7 +238,7 @@ Los records internos `BookInput`, `BookLookupInput`, `SonnetEnrichment` pueden m
 
 ---
 
-## FASE 7 — Limpieza menor (bajo riesgo)
+## FASE 7 — Limpieza menor (bajo riesgo) ✅ COMPLETADA
 
 ### 7.1 Iteraciones múltiples en `GoogleBooksClient`
 

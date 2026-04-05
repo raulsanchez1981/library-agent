@@ -23,7 +23,7 @@ class OpenLibraryClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         server = MockRestServiceServer.bindTo(builder).build();
-        client = new RestClientOpenLibraryClient(builder);
+        client = new RestClientOpenLibraryClient(builder, "https://openlibrary.org");
     }
 
     @Test

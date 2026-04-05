@@ -47,7 +47,7 @@ class PullpushLiveTest {
         PullpushApiClient pullpushClient =
                 new RestClientPullpushApiClient(pullpushProps, RestClient.builder());
         OpenLibraryClient olClient =
-                new RestClientOpenLibraryClient(RestClient.builder());
+                new RestClientOpenLibraryClient(RestClient.builder(), "https://openlibrary.org");
 
         // When — para cada subreddit, enriquecer los posts con OpenLibrary
         List<String> subreddits = pullpushProps.subreddits().keySet().stream().toList();
