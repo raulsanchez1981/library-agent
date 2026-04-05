@@ -72,3 +72,38 @@ jobs:
         uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
+
+      - name: Analizar Dockerfile del dashboard
+        uses: hadolint/hadolint-action@v3.1.0
+        with:
+          dockerfile: dashboard/Dockerfile
+
+  # ── 5. Build del dashboard Next.js ───────────────────────────────────────
+  build-dashboard:
+    name: Build dashboard (Next.js)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build de producción
+        run: npm run build
+        env:
+          NEXTAUTH_URL: http://localhost:3000
+          NEXTAUTH_SECRET: ci-test-secret
+          AUTH_AUTHENTIK_ID: ci-client-id
+          AUTH_AUTHENTIK_SECRET: ci-client-secret
+          AUTH_AUTHENTIK_ISSUER: https://auth.mistborn.cv/application/o/libraryagent/
+          NEXT_PUBLIC_API_URL: http://localhost:8080/library-agent

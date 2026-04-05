@@ -42,6 +42,28 @@ services:
     networks:
       - libraryagent-net
 
+  dashboard:
+    build: ./dashboard
+    container_name: libraryagent-dashboard
+    restart: unless-stopped
+    environment:
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      AUTH_AUTHENTIK_ID: ${AUTH_AUTHENTIK_ID}
+      AUTH_AUTHENTIK_SECRET: ${AUTH_AUTHENTIK_SECRET}
+      AUTH_AUTHENTIK_ISSUER: ${AUTH_AUTHENTIK_ISSUER}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/auth/session || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - libraryagent-net
+
 volumes:
   redis_data:
 
