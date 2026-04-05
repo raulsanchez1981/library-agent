@@ -37,6 +37,14 @@ export async function fetchAdminBooks(params: {
   return res.json();
 }
 
+export async function discardBook(id: string): Promise<void> {
+  const res = await apiFetch(`/api/v1/admin/books/${id}/discard`, {
+    method: "POST",
+  });
+  if (!res.ok) throw new Error("Error al descartar el libro");
+  revalidatePath("/admin/books");
+}
+
 export async function updateAdminBook(
   id: string,
   data: UpdateExtractedBookRequest

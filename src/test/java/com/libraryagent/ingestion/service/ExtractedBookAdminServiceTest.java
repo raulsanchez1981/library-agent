@@ -45,6 +45,9 @@ class ExtractedBookAdminServiceTest {
     @Mock
     VerifiedTitleRepository verifiedTitleRepository;
 
+    @Mock
+    GenreEnrichmentService genreEnrichmentService;
+
     @InjectMocks
     ExtractedBookAdminServiceImpl service;
 

@@ -31,7 +31,8 @@ public record ExtractedBookAdminDto(
         String coverUrl,
         String synopsis,
         boolean cdlEnriched,
-        CdlAutoSearchStatus cdlAutoSearchStatus
+        CdlAutoSearchStatus cdlAutoSearchStatus,
+        boolean discarded
 ) {
 
     public static ExtractedBookAdminDto fromEntity(ExtractedBookEntity e) {
@@ -65,7 +66,8 @@ public record ExtractedBookAdminDto(
                 coverUrl,
                 synopsis,
                 cdlEnriched,
-                cdlAutoSearchStatus
+                cdlAutoSearchStatus,
+                e.isDiscarded()
         );
     }
 }

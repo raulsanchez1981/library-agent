@@ -59,4 +59,10 @@ public class BookAdminController {
 
         return ResponseEntity.ok(adminService.update(id, request));
     }
+
+    @PostMapping("/{id}/discard")
+    public ResponseEntity<Void> discard(@PathVariable UUID id) {
+        adminService.discard(id);
+        return ResponseEntity.noContent().build();
+    }
 }

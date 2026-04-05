@@ -54,7 +54,7 @@ public class VerifiedTitleEnrichServiceImpl implements VerifiedTitleEnrichServic
                     .forEach(vt.getGenres()::add);
         }
 
-        return VerifiedTitleDetailDto.fromEntity(verifiedTitleRepository.save(vt));
+        return VerifiedTitleDetailDto.fromEntity(verifiedTitleRepository.save(vt), List.of());
     }
 
     @Override
@@ -83,7 +83,7 @@ public class VerifiedTitleEnrichServiceImpl implements VerifiedTitleEnrichServic
                     .forEach(vt.getGenres()::add);
         }
 
-        return VerifiedTitleDetailDto.fromEntity(verifiedTitleRepository.save(vt));
+        return VerifiedTitleDetailDto.fromEntity(verifiedTitleRepository.save(vt), List.of());
     }
 
     @Override
@@ -94,6 +94,6 @@ public class VerifiedTitleEnrichServiceImpl implements VerifiedTitleEnrichServic
 
         vt.setCdlAutoSearchStatus(CdlAutoSearchStatus.CONFIRMED);
 
-        return VerifiedTitleDetailDto.fromEntity(verifiedTitleRepository.save(vt));
+        return VerifiedTitleDetailDto.fromEntity(verifiedTitleRepository.save(vt), List.of());
     }
 }

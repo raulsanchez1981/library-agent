@@ -65,6 +65,7 @@ class VerifiedTitleEnrichControllerTest {
                 "{\"ISBN\":\"978-84-12345-67-8\"}",
                 "https://www.casadellibro.com/libro/el-nombre-del-viento",
                 List.of(new GenreDto(UUID.randomUUID(), "Fantasía")),
+                List.of(),
                 null,
                 null, null, null, null
         );

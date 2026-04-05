@@ -53,6 +53,14 @@ public class GenreEnrichmentServiceImpl implements GenreEnrichmentService {
     @Override
     @Async("cdlSearchExecutor")
     @Transactional
+    public void enrichSingle(VerifiedTitleEntity verifiedTitle) {
+        log.info("Enriquecimiento de géneros para: {}", verifiedTitle.getName());
+        enrichBatch(List.of(verifiedTitle));
+    }
+
+    @Override
+    @Async("cdlSearchExecutor")
+    @Transactional
     public void enrichAllGenres() {
         List<VerifiedTitleEntity> targets = verifiedTitleRepository.findAllWithGenres();
         log.info("Enriquecimiento de géneros (todos): {} títulos", targets.size());

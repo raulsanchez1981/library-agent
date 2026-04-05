@@ -1,5 +1,6 @@
 package com.libraryagent.ingestion.service;
 
+import com.libraryagent.ingestion.dto.AuthorRefDto;
 import com.libraryagent.ingestion.dto.VerifiedTitleDetailDto;
 import com.libraryagent.ingestion.dto.VerifiedTitleDto;
 import com.libraryagent.ingestion.entity.AuthorEntity;
@@ -48,7 +49,17 @@ public class BibliotecaServiceImpl implements BibliotecaService {
     @Transactional(readOnly = true)
     public VerifiedTitleDetailDto findById(UUID id) {
         return verifiedTitleRepository.findByIdWithGenres(id)
-                .map(VerifiedTitleDetailDto::fromEntity)
+                .map(vt -> {
+                    List<AuthorRefDto> authors = extractedBookRepository
+                            .findByVerifiedTitleAndConfidence(vt, Confidence.VERIFIED)
+                            .stream()
+                            .flatMap(book -> book.getAuthors().stream())
+                            .distinct()
+                            .sorted((a, b) -> a.getName().compareToIgnoreCase(b.getName()))
+                            .map(AuthorRefDto::fromEntity)
+                            .toList();
+                    return VerifiedTitleDetailDto.fromEntity(vt, authors);
+                })
                 .orElseThrow(() -> new EntityNotFoundException("Título verificado no encontrado: " + id));
     }
 }
