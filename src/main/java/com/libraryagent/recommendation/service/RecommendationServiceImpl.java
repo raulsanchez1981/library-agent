@@ -14,7 +14,7 @@ import com.libraryagent.userprofile.model.ReadingStatus;
 import com.libraryagent.userprofile.model.UserProfile;
 import com.libraryagent.userprofile.repository.ReadingHistoryRepository;
 import com.libraryagent.userprofile.repository.UserProfileRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -74,7 +74,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Transactional
     public RecommendationDto dismiss(UUID id) {
         RecommendationEntity entity = recommendationRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Recomendación no encontrada: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("Recomendación no encontrada: " + id));
         entity.setStatus(RecommendationStatus.DESCARTADA);
         return toDto(recommendationRepository.save(entity));
     }

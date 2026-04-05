@@ -8,7 +8,7 @@ import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -72,6 +72,6 @@ public class BibliotecaServiceImpl implements BibliotecaService {
                             .toList();
                     return VerifiedTitleDetailDto.fromEntity(vt, authors);
                 })
-                .orElseThrow(() -> new EntityNotFoundException("Título verificado no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("Título verificado no encontrado: " + id));
     }
 }

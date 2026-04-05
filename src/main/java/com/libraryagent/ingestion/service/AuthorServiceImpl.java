@@ -5,7 +5,7 @@ import com.libraryagent.ingestion.dto.AuthorDetailDto;
 import com.libraryagent.ingestion.dto.AuthorSummaryDto;
 import com.libraryagent.ingestion.repository.AuthorRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -44,6 +44,6 @@ public class AuthorServiceImpl implements AuthorService {
                             .toList();
                     return AuthorDetailDto.fromEntity(author, books);
                 })
-                .orElseThrow(() -> new EntityNotFoundException("Author not found: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("Author not found: " + id));
     }
 }

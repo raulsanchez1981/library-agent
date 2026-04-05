@@ -15,7 +15,7 @@ import com.libraryagent.userprofile.model.ReadingStatus;
 import com.libraryagent.userprofile.model.UserProfile;
 import com.libraryagent.userprofile.repository.ReadingHistoryRepository;
 import com.libraryagent.userprofile.repository.UserProfileRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -130,7 +130,7 @@ class RecommendationServiceTest {
 
         // When / Then
         assertThatThrownBy(() -> service.dismiss(id))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(LibraryAgentException.class)
                 .hasMessageContaining(id.toString());
     }
 

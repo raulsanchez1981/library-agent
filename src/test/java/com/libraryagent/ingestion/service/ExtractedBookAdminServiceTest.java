@@ -10,7 +10,7 @@ import com.libraryagent.ingestion.model.ExtractedBookEntity;
 import com.libraryagent.ingestion.repository.AuthorRepository;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -81,7 +81,7 @@ class ExtractedBookAdminServiceTest {
 
         // When / Then
         assertThatThrownBy(() -> service.findById(unknownId))
-                .isInstanceOf(EntityNotFoundException.class)
+                .isInstanceOf(LibraryAgentException.class)
                 .hasMessageContaining(unknownId.toString());
     }
 
@@ -383,7 +383,7 @@ class ExtractedBookAdminServiceTest {
     }
 
     @Test
-    void shouldLinkBooksWithMatchingTitleEsToVerifiedTitle() {
+    void shouldDelegateToBookLinkingServiceAfterUpdate() {
         // Given
         UUID id = UUID.randomUUID();
         ExtractedBookEntity entity = buildEntity(id, "Dune", "Frank Herbert");
@@ -394,22 +394,13 @@ class ExtractedBookAdminServiceTest {
         VerifiedTitleEntity vt = new VerifiedTitleEntity("Dune");
         when(verifiedTitleRepository.findByNameIgnoreCase("Dune")).thenReturn(Optional.of(vt));
 
-
-        // Libro sin título verificado que coincide por titleEs
-        ExtractedBookEntity unlinkedBook = buildEntity(UUID.randomUUID(), "Dune", "F. Herbert");
-        unlinkedBook.setTitleEs("Dune");
-        when(repository.findByVerifiedTitleIsNullAndTitleEsIsNotNull()).thenReturn(List.of(unlinkedBook));
-        when(verifiedTitleRepository.findAll()).thenReturn(List.of(vt));
-        when(authorRepository.findByVerifiedTrue()).thenReturn(List.of());
-
         UpdateExtractedBookRequest request = new UpdateExtractedBookRequest("Dune", null, null, null);
 
         // When
         service.update(id, request);
 
-        // Then — el libro sin título verificado queda vinculado
-        assertThat(unlinkedBook.getVerifiedTitle()).isEqualTo(vt);
-        verify(repository).saveAll(List.of(unlinkedBook));
+        // Then — la vinculación de libros sin verificar se delega a BookLinkingService
+        verify(bookLinkingService).linkUnverifiedBooks();
     }
 
     // --- Helpers ---

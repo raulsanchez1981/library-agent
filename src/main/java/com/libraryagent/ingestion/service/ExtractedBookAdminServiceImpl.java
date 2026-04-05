@@ -10,7 +10,7 @@ import com.libraryagent.ingestion.model.ExtractedBookEntity;
 import com.libraryagent.ingestion.repository.AuthorRepository;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -59,14 +59,14 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     public ExtractedBookAdminDto findById(UUID id) {
         return repository.findById(id)
                 .map(ExtractedBookAdminDto::fromEntity)
-                .orElseThrow(() -> new EntityNotFoundException("ExtractedBook no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("ExtractedBook no encontrado: " + id));
     }
 
     @Override
     @Transactional
     public ExtractedBookAdminDto update(UUID id, UpdateExtractedBookRequest request) {
         ExtractedBookEntity entity = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("ExtractedBook no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("ExtractedBook no encontrado: " + id));
 
         if (request.titleEs() != null) {
             entity.setTitleEs(request.titleEs());
@@ -130,7 +130,7 @@ public class ExtractedBookAdminServiceImpl implements ExtractedBookAdminService 
     @Transactional
     public void discard(UUID id) {
         ExtractedBookEntity entity = repository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("ExtractedBook no encontrado: " + id));
+                .orElseThrow(() -> LibraryAgentException.notFound("ExtractedBook no encontrado: " + id));
         entity.setDiscarded(true);
         repository.save(entity);
     }

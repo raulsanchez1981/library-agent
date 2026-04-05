@@ -49,7 +49,7 @@ class CasaDelLibroScraperServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new CasaDelLibroScraperServiceImpl(new ObjectMapper(), "dummy-key") {
+        service = new CasaDelLibroScraperServiceImpl(new ObjectMapper(), null) {
             @Override
             protected Document fetchDocument(String url) {
                 return Jsoup.parse(SAMPLE_HTML, url);
@@ -98,7 +98,7 @@ class CasaDelLibroScraperServiceTest {
     @Test
     void shouldReturnNullFieldsWhenClaudeReturnsNulls() {
         // Given — Claude devuelve nulls/arrays vacíos
-        CasaDelLibroScraperServiceImpl emptyService = new CasaDelLibroScraperServiceImpl(new ObjectMapper(), "dummy-key") {
+        CasaDelLibroScraperServiceImpl emptyService = new CasaDelLibroScraperServiceImpl(new ObjectMapper(), null) {
             @Override
             protected Document fetchDocument(String url) {
                 return Jsoup.parse("<html><head></head><body></body></html>", url);
@@ -132,7 +132,7 @@ class CasaDelLibroScraperServiceTest {
     @Test
     void shouldThrowRuntimeExceptionWhenConnectionFails() {
         // Given
-        CasaDelLibroScraperServiceImpl failingService = new CasaDelLibroScraperServiceImpl(new ObjectMapper(), "dummy-key") {
+        CasaDelLibroScraperServiceImpl failingService = new CasaDelLibroScraperServiceImpl(new ObjectMapper(), null) {
             @Override
             protected Document fetchDocument(String url) throws IOException {
                 throw new IOException("Connection refused");
@@ -148,7 +148,7 @@ class CasaDelLibroScraperServiceTest {
     @Test
     void shouldThrowRuntimeExceptionWhenClaudeReturnsMalformedJson() {
         // Given
-        CasaDelLibroScraperServiceImpl badJsonService = new CasaDelLibroScraperServiceImpl(new ObjectMapper(), "dummy-key") {
+        CasaDelLibroScraperServiceImpl badJsonService = new CasaDelLibroScraperServiceImpl(new ObjectMapper(), null) {
             @Override
             protected Document fetchDocument(String url) {
                 return Jsoup.parse(SAMPLE_HTML, url);

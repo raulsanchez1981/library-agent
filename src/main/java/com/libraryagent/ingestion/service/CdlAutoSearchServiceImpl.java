@@ -5,7 +5,7 @@ import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.model.ExtractedBookEntity;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
 import com.libraryagent.ingestion.repository.VerifiedTitleRepository;
-import jakarta.persistence.EntityNotFoundException;
+import com.libraryagent.shared.exception.LibraryAgentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
@@ -122,7 +122,7 @@ public class CdlAutoSearchServiceImpl implements CdlAutoSearchService {
     @Transactional
     protected void markNotFound(UUID vtId) {
         VerifiedTitleEntity vt = verifiedTitleRepository.findById(vtId)
-                .orElseThrow(() -> new EntityNotFoundException("Título verificado no encontrado: " + vtId));
+                .orElseThrow(() -> LibraryAgentException.notFound("Título verificado no encontrado: " + vtId));
         vt.setCdlAutoSearchStatus(CdlAutoSearchStatus.NOT_FOUND);
         verifiedTitleRepository.save(vt);
     }
