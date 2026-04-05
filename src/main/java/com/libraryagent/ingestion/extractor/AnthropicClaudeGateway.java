@@ -38,6 +38,23 @@ public class AnthropicClaudeGateway implements ClaudeGateway {
 
             Responde SOLO con el JSON array, sin explicaciones.""";
 
+    private static final String INFER_GENRES_PROMPT = """
+            Eres un experto en literatura. Para cada libro de esta lista, \
+            infiere entre 2 y 4 géneros literarios específicos en español. \
+            Usa la sinopsis cuando esté disponible para ser más preciso, \
+            aunque no conozcas el título directamente.
+            Géneros válidos (no exhaustivos): Fantasía épica, Fantasía juvenil, \
+            Magia y brujería, Ciencia ficción, Distopía, Space opera, \
+            Novela negra, Thriller, Misterio, Terror, Romance, Romance fantástico, \
+            Aventura, Aventura juvenil, Historia, Novela histórica, Biografía, \
+            Ensayo, Humor, Drama, Contemporáneo, Clásico.
+            Devuelve en el mismo orden un JSON array donde cada objeto tiene:
+            - genres: array de strings con los géneros inferidos (nunca vacío)
+
+            Lista: %s
+
+            Responde SOLO con el JSON array, sin explicaciones.""";
+
     private static final String ENRICH_PROMPT = """
             Eres un experto en literatura mundial. Para cada libro de esta lista \
             devuelve en el mismo orden un JSON array donde cada objeto tiene:
@@ -74,6 +91,11 @@ public class AnthropicClaudeGateway implements ClaudeGateway {
     @Override
     public String lookupAuthorsBatchJson(String booksJson) {
         return call(Model.of("claude-sonnet-4-6"), LOOKUP_AUTHORS_PROMPT.formatted(booksJson), 512L);
+    }
+
+    @Override
+    public String inferGenresBatchJson(String booksJson) {
+        return call(Model.CLAUDE_HAIKU_4_5_20251001, INFER_GENRES_PROMPT.formatted(booksJson), 1024L);
     }
 
     private String call(Model model, String prompt, long maxTokens) {

@@ -83,14 +83,44 @@ public class RestClientOpenLibraryClient implements OpenLibraryClient {
         }
     }
 
+    @Override
+    public Optional<String> findCoverUrl(String title, String originalTitle) {
+        // 1. Título en español con filtro español
+        Optional<String> url = coverUrlFromTitle(title, true);
+        if (url.isPresent()) return url;
+
+        // 2. Título en español sin filtro
+        url = coverUrlFromTitle(title, false);
+        if (url.isPresent()) return url;
+
+        // 3. Título original en inglés
+        if (originalTitle != null && !originalTitle.equalsIgnoreCase(title)) {
+            url = coverUrlFromTitle(originalTitle, false);
+            if (url.isPresent()) return url;
+        }
+
+        return Optional.empty();
+    }
+
+    private Optional<String> coverUrlFromTitle(String title, boolean useSpanishFilter) {
+        try {
+            SearchDoc doc = findWorkByTitle(title, useSpanishFilter);
+            if (doc == null || doc.coverId() == null) return Optional.empty();
+            return Optional.of("https://covers.openlibrary.org/b/id/" + doc.coverId() + "-L.jpg");
+        } catch (RestClientException e) {
+            log.warn("Error al buscar portada en OpenLibrary para '{}': {}", title, e.getMessage());
+            return Optional.empty();
+        }
+    }
+
     /**
      * Busca en OL el work cuyo título sea más similar al buscado.
      * Si useSpanishFilter=true incluye &language=spa (para búsquedas por título español).
      */
     private SearchDoc findWorkByTitle(String title, boolean useSpanishFilter) {
         String uri = useSpanishFilter
-                ? "/search.json?title={title}&language=spa&limit=5&fields=key,title,author_name"
-                : "/search.json?title={title}&limit=5&fields=key,title,author_name";
+                ? "/search.json?title={title}&language=spa&limit=5&fields=key,title,author_name,cover_i"
+                : "/search.json?title={title}&limit=5&fields=key,title,author_name,cover_i";
 
         SearchResponse response = restClient.get()
                 .uri(uri, title)
@@ -168,7 +198,8 @@ public class RestClientOpenLibraryClient implements OpenLibraryClient {
     private record SearchDoc(
             @JsonProperty("key") String key,
             @JsonProperty("title") String title,
-            @JsonProperty("author_name") List<String> authorName
+            @JsonProperty("author_name") List<String> authorName,
+            @JsonProperty("cover_i") Integer coverId
     ) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)

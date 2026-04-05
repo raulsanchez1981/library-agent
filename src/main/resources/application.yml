@@ -49,7 +49,11 @@ ingestion:
     posts-size: 25
 
 anthropic:
-  api-key: ${ANTHROPIC_API_KEY}
+  api-key: ${ANTHROPIC_API_KEY:}
+
+google:
+  books:
+    api-key: ${GOOGLE_BOOKS_API_KEY:}
 
 recommendation:
   claude-model: ${RECOMMENDATION_CLAUDE_MODEL:claude-sonnet-4-6}
@@ -67,4 +71,6 @@ management:
 logging:
   level:
     com.libraryagent: INFO
+    com.libraryagent.ingestion.service.GoogleCustomSearchServiceImpl: DEBUG
+    com.libraryagent.ingestion.client.GoogleBooksClient: DEBUG
     org.flywaydb: INFO

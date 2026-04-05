@@ -202,15 +202,39 @@ Motivación: base de datos sobre los gustos del usuario que alimenta el motor de
 
 #### 4.5 — Dashboard web
 Motivación: interfaz visual para explorar recomendaciones y gestionar el perfil lector.
+Stack: Next.js 14+ (App Router), TypeScript, Tailwind CSS. Dentro del monorepo en `dashboard/`, separable en el futuro.
 
-- [ ] Stack: Next.js 14+ (App Router), TypeScript, Tailwind CSS
-- [ ] Autenticación: NextAuth.js con provider OIDC apuntando a Authentik (auth.mistborn.cv)
-- [ ] Página principal: lista de recomendaciones con score, portada, título, autor y justificación Claude
-- [ ] Página perfil: editar géneros favoritos, autores, umbral de score
-- [ ] Página historial: libros leídos/en curso/pendientes con rating y notas
-- [ ] Acción "Descartar" en cada recomendación (llama `PATCH /api/v1/recommendations/{id}/dismiss`)
-- [ ] Despliegue en roshar: contenedor Docker en docker-compose.prod.yml, subdominio dashboard.mistborn.cv
-- [ ] CI ampliado: job de build Next.js + linting TypeScript
+##### 4.5.1 — Scaffolding y layout base ✓
+- [x] `dashboard/` en la raíz del monorepo: Next.js 16.2.2 con TypeScript, Tailwind, App Router
+- [x] Layout principal: sidebar oscuro con navegación (Recomendaciones / Perfil / Historial)
+- [x] Route group `(dashboard)` con páginas placeholder para las 3 secciones
+- [x] Variables de entorno documentadas en `.env.local.example`
+
+##### 4.5.2 — Autenticación con Authentik ✓
+- [x] NextAuth.js v5 con provider Authentik OIDC (`auth.mistborn.cv`)
+- [x] `proxy.ts` (convención Next.js 16) protege todas las rutas, redirige a Authentik si no hay sesión
+- [x] Sidebar muestra nombre/email del usuario autenticado y botón de logout
+- [x] `access_token` de Authentik guardado en sesión para propagar a la API Spring Boot
+
+##### 4.5.3 — Página de recomendaciones ✓
+- [x] `GET /api/v1/recommendations` → lista paginada con score, título, autor, justificación Claude
+- [x] Badge de score con color por rango (verde ≥80, amarillo 60-79, rojo <60)
+- [x] Botón "Descartar" con UI optimista → `PATCH /api/v1/recommendations/{id}/dismiss`
+- [x] Botón "Lanzar scoring" con feedback → `POST /api/v1/recommendations/trigger`
+- [x] Paginación y skeleton de carga
+
+##### 4.5.4 — Páginas de perfil e historial ✓
+- [x] Perfil: formulario para editar géneros favoritos, autores y umbral mínimo de score (`PUT /api/v1/profile`)
+- [x] Historial: lista de libros con estado, rating y notas (`GET /api/v1/reading-history`)
+- [x] Añadir libro al historial con formulario inline (`POST /api/v1/reading-history`)
+- [x] Cambiar estado de un libro (`PATCH /api/v1/reading-history/{id}`)
+
+##### 4.5.5 — Dockerización y despliegue
+- [ ] `dashboard/Dockerfile` multi-stage (build Node + runtime distroless/node)
+- [ ] Servicio `dashboard` en `docker-compose.prod.yml` (puerto 3000)
+- [ ] Subdominio `dashboard.mistborn.cv` en Cloudflare Tunnel → NPM → dashboard:3000
+- [ ] CI ampliado: job `build-dashboard` con `npm ci`, `npm run lint`, `npm run build`
+- [ ] Monitor en Uptime Kuma: `dashboard.mistborn.cv`
 
 ---
 
@@ -279,6 +303,6 @@ Objetivo: app móvil nativa que consume la API REST existente.
 - Siempre en español en las respuestas
 - Commits en Conventional Commits español
 - Nunca hacer commit sin confirmación explícita de Raul
-- Fase actual: Fase 4 — En curso. 4.1, 4.2, 4.3 y 4.4 completadas. Siguiente: 4.5 Dashboard web
+- Fase actual: Fase 4 — En curso. 4.1–4.4 y 4.5.1–4.5.4 completadas. Siguiente: 4.5.5 Dockerización y despliegue del dashboard
 - Todo el desarrollo a partir de ahora via ramas feature/* y PRs
 - Nunca push directo a main ni a develop

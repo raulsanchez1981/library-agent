@@ -14,4 +14,6 @@ public interface ReadingHistoryService {
     ReadingHistoryDto add(UUID profileId, AddReadingHistoryRequest request);
 
     ReadingHistoryDto update(UUID profileId, UUID historyId, UpdateReadingHistoryRequest request);
+
+    void delete(UUID profileId, UUID historyId);
 }

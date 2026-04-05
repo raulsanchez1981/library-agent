@@ -1,5 +1,7 @@
 package com.libraryagent.ingestion.model;
 
+import com.libraryagent.ingestion.entity.AuthorEntity;
+import com.libraryagent.ingestion.entity.VerifiedTitleEntity;
 import com.libraryagent.ingestion.extractor.Confidence;
 import com.libraryagent.ingestion.extractor.EnrichmentSource;
 import jakarta.persistence.*;
@@ -9,6 +11,8 @@ import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -58,6 +62,18 @@ public class ExtractedBookEntity {
 
     @Column(name = "enriched_at")
     private Instant enrichedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "verified_title_id")
+    private VerifiedTitleEntity verifiedTitle;
+
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "book_authors",
+            joinColumns = @JoinColumn(name = "book_id"),
+            inverseJoinColumns = @JoinColumn(name = "author_id")
+    )
+    private List<AuthorEntity> authors = new ArrayList<>();
 
     // --- Metadatos ---
 

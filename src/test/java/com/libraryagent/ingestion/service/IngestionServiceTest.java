@@ -2,6 +2,7 @@ package com.libraryagent.ingestion.service;
 
 import com.libraryagent.ingestion.extractor.BookTitleExtractor;
 import com.libraryagent.ingestion.extractor.ExtractedBookResult;
+import com.libraryagent.ingestion.model.ExtractedBookEntity;
 import com.libraryagent.ingestion.model.RawMention;
 import com.libraryagent.ingestion.model.RawMentionEntity;
 import com.libraryagent.ingestion.repository.ExtractedBookRepository;
@@ -153,6 +154,49 @@ class IngestionServiceTest {
         // Then
         verify(unavailable, never()).ingest();
         verify(extractor).extract(mention);
+    }
+
+    @Test
+    void shouldDiscardExtractedBookWhenTitleAlreadyExistsInDatabase() {
+        // Given — mención nueva, pero el libro extraído ya existe en BBDD por título
+        RawMention mention = mention("https://reddit.com/r/Fantasy/comments/new");
+        ExtractedBookResult duplicateBook = new ExtractedBookResult("Dune", "Frank Herbert", false);
+
+        when(ingester.isAvailable()).thenReturn(true);
+        when(ingester.ingest()).thenReturn(List.of(mention));
+        when(rawMentionRepository.existsByUrl(anyString())).thenReturn(false);
+        when(rawMentionRepository.save(any())).thenReturn(new RawMentionEntity());
+        when(extractor.extract(mention)).thenReturn(List.of(duplicateBook));
+        when(extractedBookRepository.existsByTitleIgnoreCase("Dune")).thenReturn(true);
+
+        // When
+        List<ExtractedBookResult> result = service().runFullIngestion();
+
+        // Then — el libro duplicado se descarta silenciosamente, nada se persiste
+        assertThat(result).isEmpty();
+        verify(extractedBookRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldPersistExtractedBookWhenTitleIsNew() {
+        // Given — mención nueva con libro que no existe en BBDD
+        RawMention mention = mention("https://reddit.com/r/Fantasy/comments/brandnew");
+        ExtractedBookResult newBook = new ExtractedBookResult("The Way of Kings", "Brandon Sanderson", false);
+
+        when(ingester.isAvailable()).thenReturn(true);
+        when(ingester.ingest()).thenReturn(List.of(mention));
+        when(rawMentionRepository.existsByUrl(anyString())).thenReturn(false);
+        when(rawMentionRepository.save(any())).thenReturn(new RawMentionEntity());
+        when(extractor.extract(mention)).thenReturn(List.of(newBook));
+        when(extractedBookRepository.existsByTitleIgnoreCase("The Way of Kings")).thenReturn(false);
+
+        // When
+        List<ExtractedBookResult> result = service().runFullIngestion();
+
+        // Then — el libro se persiste y se incluye en el resultado
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).title()).isEqualTo("The Way of Kings");
+        verify(extractedBookRepository).save(any());
     }
 
     private static RawMention mention(String url) {

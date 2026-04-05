@@ -61,10 +61,14 @@ public class IngestionService {
         for (RawMention mention : newMentions) {
             RawMentionEntity savedMention = rawMentionRepository.save(toEntity(mention));
             List<ExtractedBookResult> books = extractor.extract(mention);
-            books.stream()
-                    .map(book -> toEntity(book, savedMention))
-                    .forEach(extractedBookRepository::save);
-            allBooks.addAll(books);
+            books.forEach(book -> {
+                if (extractedBookRepository.existsByTitleIgnoreCase(book.title())) {
+                    log.debug("Libro duplicado descartado: {}", book.title());
+                } else {
+                    extractedBookRepository.save(toEntity(book, savedMention));
+                    allBooks.add(book);
+                }
+            });
         }
 
         log.info("Libros extraídos y persistidos: {}", allBooks.size());
