@@ -53,6 +53,7 @@ services:
       AUTH_AUTHENTIK_SECRET: ${AUTH_AUTHENTIK_SECRET}
       AUTH_AUTHENTIK_ISSUER: ${AUTH_AUTHENTIK_ISSUER}
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      AUTH_TRUST_HOST: "true"
     ports:
       - "3002:3000"
     healthcheck:
